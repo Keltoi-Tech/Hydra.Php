@@ -1,7 +1,4 @@
 <?php
-include_once("user.php");
-include_once("app.php");
-include_once("profile.php");
 use persistence\IProvider;
 use concept\IAuth;
 

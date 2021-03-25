@@ -23,91 +23,113 @@ class Rest
         return new Rest($request,$viewSet);
     }
 
+    private function setCall($action,$rawCallingMethod){
+        $eachPart = explode('-',$rawCallingMethod);
+        array_walk($eachPart,'arrayUcfirst');
+        return $action.implode('',$eachPart);        
+    }
+
     function post(){
-        $associate = $this->request->getOp();
+        $param = $this->request->getOp();
         $data = $this->request->getStream();
-        return
-            (isset($associate))?
-                method_exists($this->viewSet,"associate")?
-                    $this->viewSet->associate($data):
-                    new Result(404,array("error"=>"Route not found")):
-                $this->viewSet->post($data);
+        if (isset($param)){
+            $method = $this->setCall("post",$param[0]);
+            return method_exists($this->viewSet,$method)?
+                        $this->viewSet->$method($data):
+                        new Result(404,["error"=>"Route not found"]);
+        }else
+            return method_exists($this->viewSet,"create")?
+                $this->viewSet->create($data):
+                new Result(404,["error"=>"Route not found"]);
     }
 
     function put(){
         $guid = $this->request->getOp()[0];
         $data = $this->request->getStream();
         return
-            (isset($guid))?
-                $this->viewSet->put($guid,$data):
-                new Result(400,array("error"=>"Invalid format. No guid found in url"));
+            method_exists($this->viewSet,'update')?
+                (isset($guid))?
+                    $this->viewSet->update($guid,$data):
+                    $this->viewSet->update($data):
+                new Result(404,["error"=>"Route not found"]);
     }
 
     function patch(){
         $param = $this->request->getOp();
         $data = $this->request->getStream();
+        $hasData = isset($data);
         if (isset($param))
         {
-            $call = $param[0];
-            return  method_exists($this->viewSet,$call)?
-                        isset($param[1])?
-                            $this->viewSet->$call($param[1]):
-                            $this->viewSet->$call($data):
-                    new Result(404,array("error"=>"Route not found"));
+            $method = $this->setCall("patch",$param[0]);
+            if (method_exists($this->viewSet,$method)){
+                $guid = isset($param[1])?$param[1]:null;
+                if ($hasData)
+                    return isset($guid)?
+                                $this->viewSet->$method($guid,$data):
+                                $this->viewSet->$method($data);
+                else        
+                    return isset($guid)?
+                                $this->viewSet->$method($guid):
+                                $this->viewSet->$method();
+            }else new Result(404,["error"=>"Route not found"]); 
         }
-        else return new Result(400,array("error"=>"Invalid format.No route found"));
+        else return new Result(404,["error"=>"Route not found"]); 
     }
 
     function delete(){
         $param = $this->request->getOp();
         if (isset($param)){
-            $call = isset($param[1])?$param[1]:"delete";
-            return method_exists($this->viewSet,$call)?
-                        $this->viewSet->$call($param[0]):
-                        new Result(404,array("error"=>"Route not found"));
-        }else return new Result(400,array("error"=>"Invalid format. No guid found"));
+            $guid = $param[0];
+            return method_exists($this->viewSet,"delete")?
+                        $this->viewSet->delete($guid):
+                        new Result(404,["error"=>"Route not found"]);
+        }else return new Result(400,["error"=>"Invalid format. No guid found"]);
     }
 
     function get(){
-        $op = $this->request->getOp();
+        $param = $this->request->getOp();
         $q = $this->request->getQueryString();
 
         if (isset($q))
         {
-            $eachPart = explode('-',$op[0]);
-            array_walk($eachPart,'arrayUcfirst');
-            $call = "list".implode('',$eachPart);
+            $method = $this->setCall("list",$param[0]);
             return method_exists($this->viewSet,$call)?
                         $this->viewSet->$call($q):
-                        new Result(404,array("error"=>"Route not found"));
+                        new Result(404,["error"=>"Route not found"]);
         }
         else
         {
-            if (isset($op))
+            if (isset($param))
             {
-                $call = (count($op)==1)?"get":"getBy".ucfirst($op[1]);
-                return  $this->viewSet->$call($op[0]);
-            }else return $this->viewSet->list();
+                $method = (count($param)==1)?"get":$this->setCall("get",$param[1]);
+                return method_exists($this->viewSet,$method)?
+                            $this->viewSet->$method($param[0]):
+                            new Result(404,["error"=>"Route not found"]);
+            }else return method_exists($this->viewSet,"list")?
+                            $this->viewSet->list():
+                            new Result(404,["error"=>"Route not found"]);
         }
     }
 
     public function run(){
-        $call = strtolower($this->request->getMethod());
-        switch($call)
-		{
-			case "post":
-                return $this->post();break;
-            case "put":
-                return $this->put();break;
-            case "patch":
-                return $this->patch();break;
-            case "delete":
-                return $this->delete();break;
-            case "get":
-                return $this->get();break;
-            default:
-                return new Result(405,array("error"=>"HTTP method forbiden"));
-		}
+        if ($this->viewSet->authorize()){
+            $call = strtolower($this->request->getMethod());
+            switch($call)
+            {
+                case "post":
+                    return $this->post();break;
+                case "put":
+                    return $this->put();break;
+                case "patch":
+                    return $this->patch();break;
+                case "delete":
+                    return $this->delete();break;
+                case "get":
+                    return $this->get();break;
+                default:
+                    return new Result(405,["error"=>"HTTP method forbiden"]);
+            }
+        }else return $this->viewSet->getValid();
     }
 }
 ?>

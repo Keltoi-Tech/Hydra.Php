@@ -1,5 +1,11 @@
 <?php
 namespace concept;
+
+interface IAuth{
+    public function getAuth():string;
+    public function getType():string;
+}
+
 interface ISerializable{
     public function serialize();
 }
@@ -8,21 +14,22 @@ interface IEntity
 {
 	public function setId($id);
 	public function getId();
-    public function getUid();
-    public function setUid($uid);
-    public function getEntityName();
-    public function getProperties();
+    public function getUid():string;
+    public function setUid(string $uid);
+    public function getEntityName():string;
+    public function getDB():array;
+    public function getProperties():array;
 }
 
 interface IOnthos extends IEntity
 {
-    public function setName($name);
-	public function getName();
+    public function setName(string $name);
+	public function getName():string;
 }
 
 interface IObject extends IEntity
 {
-    public function setDescription($description);
-	public function getDescription();
+    public function setDescription(string $description);
+	public function getDescription():string;
 }
 ?>

@@ -9,6 +9,38 @@ use concept\{
 use PDO;
 use JsonSerializable;
 
+
+abstract class Entity{
+    protected $id;
+    protected $uid;
+    protected $db;
+
+    protected function __construct(array $db){
+        $this->db = $db;
+    }
+
+    public function getId(){
+        return $this->id;
+    }
+    public function setId($id){
+        $this->id = $id;
+    }       
+    public function getUid():string{
+        return $this->uid;
+    }
+    public function setUid(string $uid){
+        $this->uid = $uid;
+    }       
+
+    public function getDB():array{
+        return $this->db;
+    }
+
+    public function getProperties():array{
+        return array_keys($this->db);
+    }
+}
+
 //DATA PROVIDER
 class Result implements JsonSerializable {
     private $status;
@@ -25,6 +57,10 @@ class Result implements JsonSerializable {
 
     public function getInfo(){
         return $this->info;
+    }
+
+    public function assert($statusCode):bool{
+        return $this->status===$statusCode;
     }
 
     public function setInfoEntity($name,$val){
@@ -47,6 +83,7 @@ class Result implements JsonSerializable {
 interface IProvider{
     public function getPdo();
     public function getCall();
+    public function getHash();
 } 
 class Provider implements IProvider
 {
@@ -57,6 +94,7 @@ class Provider implements IProvider
 	private $password;
 	private $callVerb;
 	private $mustCallVerb;
+    private $appName;
 	
 	function __construct($filePath)
 	{
@@ -69,7 +107,15 @@ class Provider implements IProvider
 		$this->password = $obj->password;
 		$this->callVerb = $obj->callVerb;
 		$this->mustCallVerb = $obj->mustCallVerb;
+        $this->appName = isset($obj->appName)?$obj->appName:"no-name";
 	}
+
+    public function getHash(){
+        return hash("sha256",
+            hash("sha256",hash("sha256",$this->database).hash("sha256",$this->login)).
+            hash("sha256",hash("sha256",$this->password).hash("sha256",$this->appName))
+        );
+    }
 
     public function getPdo(){
         $dsn = "{$this->dbms}:host={$this->host};dbname={$this->database};charset=utf8";
@@ -161,7 +207,9 @@ interface ICrud{
     public function deassociate(IEntity $entity,IEntity $link);
     public function getAssociate(IEntity $entity, IEntity $link);
     public function nameLike(IOnthos $onthos);
+    public function nameIs(IOnthos $onthos);
     public function descriptionLike(IObject $object);
+    public function descriptionIs(IObject $object);
 }
 
 class Crud extends EntityCrud implements ICrud
@@ -182,8 +230,6 @@ class Crud extends EntityCrud implements ICrud
         $parameters = $this->getParametersByComma($entity);
         $bind = $this->getKeyValuesBind($entity);
         $bind["uid"]=$entity->getUid();
-
-        
 		$query = "Insert Into {$name} (uid,{$fields}) Values (:uid,{$parameters})";
         $pdo = $this->provider->getPdo();
         $pdo->beginTransaction();
@@ -191,14 +237,14 @@ class Crud extends EntityCrud implements ICrud
         $result=null;
         try{
             $result = $statement->execute($bind)?
-                Result::getInstance(200,array("uid"=>$entity->getUid())):
-                Result::getInstance(500,array("error"=>self::ERROR_MESSAGE));
+                Result::getInstance(200,["uid"=>$entity->getUid()]):
+                Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
             $pdo->commit();
         }
         catch (Exception $e)
         {  
             $pdo->rollBack();
-            $result = Result::getInstance(500,array("error"=>$e->getMessage()));
+            $result = Result::getInstance(500,["error"=>$e->getMessage()]);
         }
         finally
         {
@@ -227,14 +273,14 @@ class Crud extends EntityCrud implements ICrud
         $result=null;
         try{
             $result = $statement->execute($bind)?
-                Result::getInstance(200,array("ok"=>"Command executed successfully")):
-                Result::getInstance(500,array("error"=>self::ERROR_MESSAGE));
+                Result::getInstance(200,["ok"=>"Command executed successfully"]):
+                Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
             $pdo->commit();
         }
         catch(Exception $e)
         {
             $pdo->rollBack();
-            $result = Result::getInstance(500,array("error"=>$e->getMessage()));
+            $result = Result::getInstance(500,["error"=>$e->getMessage()]);
         }
         finally
         {
@@ -254,10 +300,10 @@ class Crud extends EntityCrud implements ICrud
         $pdo = $this->provider->getPdo();
         $statement = $pdo->prepare($query);
         $statement->setFetchMode(PDO::FETCH_CLASS,"\\model\\".$name);
-        $statement->execute(array("id"=>$entity->getId()));
+        $statement->execute(["id"=>$entity->getId()]);
         $entity = $statement->fetch();
         $result = ($entity->getId()===0)?
-                    Result::getInstance(404,array("error"=>"Id:{$entity->getId()} not found")):
+                    Result::getInstance(404,["error"=>"Id:{$entity->getId()} not found"]):
                     Result::getInstance(200,$entity);
         $statement->closeCursor();
         $statement=null;
@@ -272,15 +318,15 @@ class Crud extends EntityCrud implements ICrud
         $query = "Select Id From {$name} Where uid=:uid";
         $pdo = $this->provider->getPdo();
         $statement = $pdo->prepare($query);
-        $statement->execute(array("uid"=>$entity->getUid()));
+        $statement->execute(["uid"=>$entity->getUid()]);
         $id = $statement->fetchColumn();
         $statement->closeCursor();
         $statement=null;
         $pdo=null;
 
         return $id===false?
-                    new Result(404,array("error"=>"Uid not found")):
-                    new Result(200,array("id"=>$id));
+                    new Result(404,["error"=>"Uid not found"]):
+                    new Result(200,["id"=>$id]);
 	}
 
     public function list(IEntity $entity,$fields){
@@ -342,14 +388,14 @@ class Crud extends EntityCrud implements ICrud
         try
         {
             $result = $statement->execute(array("id"=>$id))?
-                            Result::getInstance(200,array("ok"=>"Id:{$id} disable")):
-                            Result::getInstance(500,array("error"=>self::ERROR_MESSAGE));
+                            Result::getInstance(200,["ok"=>"Id:{$id} disable"]):
+                            Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
             $pdo->commit();
         }
         catch(Exception $e)
         {
             $pdo->rollBack();
-            $result = Result::getInstance(500,array("error"=>$e->getMessage()));
+            $result = Result::getInstance(500,["error"=>$e->getMessage()]);
         }
         finally
         {
@@ -371,14 +417,14 @@ class Crud extends EntityCrud implements ICrud
         try
         {
             $result = $statement->execute(array("id"=>$id))?
-                        Result::getInstance(200,array("ok"=>"Id:{$id} enabled")):
-                        Result::getInstance(500,array("error"=>self::ERROR_MESSAGE));
+                        Result::getInstance(200,["ok"=>"Id:{$id} enabled"]):
+                        Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
             $pdo->commit();
         }
         catch(Exception $e)
         {
             $pdo->rollBack();
-            $result = Result::getInstance(500,array("error"=>$e->getMessage()));
+            $result = Result::getInstance(500,["error"=>$e->getMessage()]);
         }
         finally
         {
@@ -397,8 +443,8 @@ class Crud extends EntityCrud implements ICrud
         $pdo = $this->provider->getPdo();
         $statement = $pdo->prepare($query);
         $result = $statement->execute(array("id"=>$id))?
-                    Result::getInstance(200,array("ok"=>self::REMOVE_OK_MESSAGE)):
-                    Result::getInstance(500,array("error"=>self::ERROR_MESSAGE));
+                    Result::getInstance(200,["ok"=>self::REMOVE_OK_MESSAGE]):
+                    Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
         $statement = null;
         $pdo=null;
         return $result;
@@ -419,14 +465,14 @@ class Crud extends EntityCrud implements ICrud
         try
         {
             $result = $statement->execute(array($idEntity=>$entityId,$idLink=>$linkId))?
-                            Result::getInstance(200,array("ok"=>self::REMOVE_OK_MESSAGE)):
-                            Result::getInstance(500,array("error"=>self::ERROR_MESSAGE));
+                            Result::getInstance(200,["ok"=>self::REMOVE_OK_MESSAGE]):
+                            Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
             $pdo->commit();
         }
         catch(Exception $e)
         {
             $pdo->rollBack();
-            $result = Result::getInstance(500,array("error"=>$e->getMessage()));
+            $result = Result::getInstance(500,["error"=>$e->getMessage()]);
         }
         finally
         {
@@ -445,8 +491,8 @@ class Crud extends EntityCrud implements ICrud
         $pdo = $this->provider->getPdo();
         $statement = $pdo->prepare($query);
         $result = $statement->execute(array($idEntity=>$entity->getId()))?
-                        Result::getInstance(200,array("ok"=>self::REMOVE_OK_MESSAGE)):
-                        Result::getInstance(500,array("error"=>self::ERROR_MESSAGE));
+                        Result::getInstance(200,["ok"=>self::REMOVE_OK_MESSAGE]):
+                        Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
 
         $pdo=null;
         $statement=null;
@@ -472,7 +518,7 @@ class Crud extends EntityCrud implements ICrud
             $statement->setFetchMode(PDO::FETCH_CLASS,"\\model\\".$nameEntity);
         $result = $statement->execute(array($idLink=>$link->getId()))?
                         Result::getInstance(200,$statement->fetchAll()):
-                        Result::getInstance(500,array("error"=>self::ERROR_MESSAGE));
+                        Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
 
         $pdo=null;
         $statement=null;
@@ -486,9 +532,24 @@ class Crud extends EntityCrud implements ICrud
         $pdo = $this->provider->getPdo();
         $statement = $pdo->prepare($query);
         $statement->setFetchMode(PDO::FETCH_ASSOC);
-        $result = $statement->execute(array("name"=>"%{$name}%"))?
+        $result = $statement->execute(["name"=>"%{$name}%"])?
                     Result::getInstance(200,$statement->fetchAll()):
-                    Result::getInstance(500,array("error"=>self::ERROR_MESSAGE));
+                    Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
+
+        $pdo=null;
+        $statement=null;
+        return $result;
+    }
+
+    public function nameIs(IOnthos $onthos){
+        $entity = $onthos->getEntityName();
+        $name= $onthos->getName();
+        $query = "Select uid,name From {$entity} Where name=:name And active=1";
+        $pdo = $this->provider->getPdo();
+        $statement = $pdo->prepare($query);
+        $result = $statement->execute(["name"=>$name])?
+                    Result::getInstance(200,$statement->fetch(PDO::FETCH_ASSOC)):
+                    Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
 
         $pdo=null;
         $statement=null;
@@ -502,9 +563,24 @@ class Crud extends EntityCrud implements ICrud
         $pdo = $this->provider->getPdo();
         $statement = $pdo->prepare($query);
         $statement->setFetchMode(PDO::FETCH_ASSOC);
-        $result = $statement->execute(array("description"=>"%{$description}%"))?
+        $result = $statement->execute(["description"=>"%{$description}%"])?
                         Result::getInstance(200,$statement->fetchAll()):
-                        Result::getInstance(500,array("error"=>self::ERROR_MESSAGE));
+                        Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
+
+        $pdo=null;
+        $statement=null;
+        return $result;
+    }
+
+    public function descriptionIs(IObject $object){
+        $entity = $object->getEntityName();
+        $description = $object->getDescription();
+        $query = "Select uid,description From {$entity} Where description=:description And active=1";
+        $pdo = $this->provider->getPdo();
+        $statement = $pdo->prepare($query);
+        $result = $statement->execute(["description"=>$description])?
+                        Result::getInstance(200,$statement->fetch(PDO::FETCH_ASSOC)):
+                        Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
 
         $pdo=null;
         $statement=null;
@@ -512,13 +588,13 @@ class Crud extends EntityCrud implements ICrud
     }
 }
 
-
-interface IViewModel{
-    public function getModelInstance($entry=null,$itself=true);
-}
-
-abstract class ViewModel implements IViewModel
+abstract class ViewModel
 {
+    protected $name;
+    protected function __construct($name){
+        $this->name = $name;
+    }
+
     public static function fillModelWithUid(IEntity $entity,$uid){
         $entity->setUid($uid);
         return $entity;
@@ -549,8 +625,36 @@ abstract class ViewModel implements IViewModel
             return self::fillModelWithFields($entity,$entry);
     }
 
-    abstract public function getModelInstance($entry=null,$itself=true);
+
+    public function toModel($entry=null,$itself=true){
+        $entity = new $this->name();
+        return isset($entry)?$this->fill($entity,$entry,$itself):$entity;
+    }
 }
 
+abstract class ViewSet{
+    protected $valid;
+
+    protected function __construct(Result $valid)    
+    {
+        $this->valid= $valid;
+    }
+
+    protected function __destruct(){
+        $this->valid = null;
+    }
+
+    public function getValid(){
+        return $this->valid;
+    }
+
+    protected function getPayload($field=null){
+        return isset($field)?$this->valid->getInfo()[$field]:$this->valid->getInfo();
+    }
+
+    public function authorize(){
+        return assert_result($this->valid);
+    }  
+}
 
 ?>

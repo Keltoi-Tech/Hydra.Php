@@ -16,5 +16,7 @@ if (!function_exists('str_contains')) {
     }
 }
 
-
+function assert_result($result):bool{
+    return $result->getStatus()==200;
+}
 ?>

@@ -1,14 +1,16 @@
 <?php
-include_once("product.php");
-include_once("supply.php");
+include_once("user.php");
+include_once("app.php");
+include_once("profile.php");
 use persistence\IProvider;
+use concept\IAuth;
 
 class ViewSetFactory{
-    public static function getInstance(IProvider $provider, $entity){
+    public static function getInstance($entity,IProvider $provider, IAuth $auth=null){
 
         $viewSetFactory = "viewSet\\{$entity}ViewSet::getInstance";
 
-        return $viewSetFactory($provider);
+        return $viewSetFactory($provider,$auth);
     }
 }
 ?>

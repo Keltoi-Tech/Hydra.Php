@@ -1,6 +1,11 @@
 <?php
 namespace concept;
 
+interface ILog{
+    public function getAuthor():string;
+    public function setAuthor(string $author);
+}
+
 interface IAuth{
     public function getAuth():string;
     public function getType():string;
@@ -12,8 +17,8 @@ interface ISerializable{
 
 interface IEntity
 {
-	public function setId($id);
-	public function getId();
+	public function setId(int $id);
+	public function getId():int;
     public function getUid():string;
     public function setUid(string $uid);
     public function getEntityName():string;

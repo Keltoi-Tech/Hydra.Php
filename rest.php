@@ -93,8 +93,8 @@ class Rest
         if (isset($q))
         {
             $method = $this->setCall("list",$param[0]);
-            return method_exists($this->viewSet,$call)?
-                        $this->viewSet->$call($q):
+            return method_exists($this->viewSet,$method)?
+                        $this->viewSet->$method($q):
                         new Result(404,["error"=>"Route not found"]);
         }
         else

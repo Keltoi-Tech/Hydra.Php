@@ -3,13 +3,11 @@ namespace persistence;
 use concept\{
     IEntity,
     IOnthos,
-    IObject,
-    ISerializable
+    IObject
 };
 use PDO;
-use JsonSerializable;
 
-
+//ENTITY BASE CLASS
 abstract class Entity{
     protected $id;
     protected $uid;
@@ -19,10 +17,10 @@ abstract class Entity{
         $this->db = $db;
     }
 
-    public function getId(){
+    public function getId():int{
         return $this->id;
     }
-    public function setId($id){
+    public function setId(int $id){
         $this->id = $id;
     }       
     public function getUid():string{
@@ -41,8 +39,8 @@ abstract class Entity{
     }
 }
 
-//DATA PROVIDER
-class Result implements JsonSerializable {
+//RESULT ABSTRACTION
+class Result {
     private $status;
     private $info;
     function __construct($status,$info)
@@ -51,15 +49,15 @@ class Result implements JsonSerializable {
         $this->info = $info;
     }
 
-    public function getStatus(){
+    public function getStatus():int{
         return $this->status;
     }
 
-    public function getInfo(){
-        return $this->info;
+    public function getInfo($field=null){
+        return isset($field)?$this->info[$field]:$this->info;
     }
 
-    public function assert($statusCode):bool{
+    public function assert(int $statusCode):bool{
         return $this->status===$statusCode;
     }
 
@@ -68,22 +66,15 @@ class Result implements JsonSerializable {
         $this->info->$call($val);
     }
 
-    public function jsonSerialize(){
-        http_response_code($this->status);
-        return ($this->info instanceof ISerializable)?
-                    $this->info->serialize():
-                    $this->info;
-    }
-
-    public static function getInstance($status,$info){
+    public static function getInstance($status,$info):Result{
         return new Result($status,$info);
     }
 }
-
+//DATA PROVIDER
 interface IProvider{
-    public function getPdo();
-    public function getCall();
-    public function getHash();
+    public function getPdo():PDO;
+    public function getCall():string;
+    public function getHash():string;
 } 
 class Provider implements IProvider
 {
@@ -94,7 +85,7 @@ class Provider implements IProvider
 	private $password;
 	private $callVerb;
 	private $mustCallVerb;
-    private $appName;
+    private $issuer;
 	
 	function __construct($filePath)
 	{
@@ -107,33 +98,34 @@ class Provider implements IProvider
 		$this->password = $obj->password;
 		$this->callVerb = $obj->callVerb;
 		$this->mustCallVerb = $obj->mustCallVerb;
-        $this->appName = isset($obj->appName)?$obj->appName:"no-name";
+        $this->issuer = $obj->issuer;
 	}
 
-    public function getHash(){
-        return hash("sha256",
-            hash("sha256",hash("sha256",$this->database).hash("sha256",$this->login)).
-            hash("sha256",hash("sha256",$this->password).hash("sha256",$this->appName))
-        );
+    public function getHash():string
+    {
+        return hash("sha256",$this->issuer);
     }
 
-    public function getPdo(){
+    public function getPdo():PDO
+    {
         $dsn = "{$this->dbms}:host={$this->host};dbname={$this->database};charset=utf8";
         return new PDO($dsn,$this->login,$this->password);
     }
 	
-	public function getCall()
+	public function getCall():string
 	{
 		return ($this->mustCallVerb)?$this->callVerb. ' ':'';
 	}
 
-    public static function getInstance($filePath){
+    public static function getInstance($filePath):Provider
+    {
         return new Provider($filePath);
     }
 }
 
 
 //OPERATION
+//DATA TOOLS FOR CRUD
 abstract class EntityCrud
 {
     protected $provider;
@@ -150,11 +142,13 @@ abstract class EntityCrud
                     implode(",", array_fill(0, count($parameters), '?'));
     }
 
-    protected function getPropertiesByComma(IEntity $entity){
+    protected function getPropertiesByComma(IEntity $entity)
+    {
         return implode(",",$entity->getProperties());
     }
 
-    protected function getParametersByComma(IEntity $entity){
+    protected function getParametersByComma(IEntity $entity)
+    {
         $parameters=array();
         foreach($entity->getProperties() as $prop){
             array_push($parameters,":{$prop}");
@@ -163,7 +157,8 @@ abstract class EntityCrud
         return implode(",",$parameters);
     }
 
-    protected function getKeyValByComma(IEntity $entity){
+    protected function getKeyValByComma(IEntity $entity)
+    {
         $parameters = array();
         foreach($entity->getProperties() as $prop){
             array_push($parameters,"{$prop}=:{$prop}");
@@ -171,7 +166,8 @@ abstract class EntityCrud
         return implode(",",$parameters);
     }
 
-    protected function getKeyValuesBind(IEntity $entity){
+    protected function getKeyValuesBind(IEntity $entity)
+    {
         $vals = array();
         foreach($entity->getProperties() as $prop){
             $method="get".ucfirst($prop);
@@ -181,7 +177,8 @@ abstract class EntityCrud
         return $vals;
     }
 
-    protected function getValue(IEntity $entity, $field){
+    protected function getValue(IEntity $entity, $field)
+    {
         $method="get".ucfirst($field);
         return $entity->$method();
     }
@@ -191,25 +188,27 @@ abstract class EntityCrud
         $this->provider = null;
 	}
 }
-
+//CRUD
 interface ICrud{
-    public function insert(IEntity $entity);
-    public function update(IEntity $entity);
-    public function get(IEntity $entity);
-    public function read(IEntity $entity);
-    public function list(IEntity $entity,$fields);
-    public function listBy(IEntity $entity,$fields,$by);
-    public function iSeeDeadPeople(IEntity $entity);
-    public function disable(IEntity $entity);
-    public function enable(IEntity $entity);
-    public function delete(IEntity $entity);
-    public function associate(IEntity $entity,IEntity $link);
-    public function deassociate(IEntity $entity,IEntity $link);
-    public function getAssociate(IEntity $entity, IEntity $link);
-    public function nameLike(IOnthos $onthos);
-    public function nameIs(IOnthos $onthos);
-    public function descriptionLike(IObject $object);
-    public function descriptionIs(IObject $object);
+    public function insert(IEntity &$entity):Result;
+    public function update(IEntity $entity):Result;
+    public function get(IEntity &$entity):Result;
+    public function getByUnique(IEntity &$entity,$uq):Result;
+    public function list(IEntity $entity,$fields):Result;
+    public function listBy(IEntity $entity,$fields,$by):Result;
+    public function iSeeDeadPeople(IEntity $entity):Result;
+    public function disable(IEntity $entity):Result;
+    public function enable(IEntity $entity):Result;
+    public function delete(IEntity $entity):Result;
+    public function associate(IEntity $entity,IEntity $link):Result;
+    public function deassociate(IEntity $entity,IEntity $link):Result;
+    public function getAssociate(IEntity $entity, IEntity $link):Result;
+    public function nameLike(IOnthos $onthos):Result;
+    public function nameIs(IOnthos &$onthos):Result;
+    public function getOnthosByUid(IOnthos &$onthos):Result;
+    public function descriptionLike(IObject $object):Result;
+    public function descriptionIs(IObject &$object):Result;
+    public function getObjectByUid(IObject &$object):Result;
 }
 
 class Crud extends EntityCrud implements ICrud
@@ -222,7 +221,7 @@ class Crud extends EntityCrud implements ICrud
 		parent::__construct($provider);
 	}
 	
-	public function insert(IEntity $entity)
+	public function insert(IEntity &$entity):Result
 	{
         $entity->setUid(getPavelGuid());
         $name = $entity->getEntityName();
@@ -235,9 +234,10 @@ class Crud extends EntityCrud implements ICrud
         $pdo->beginTransaction();
         $statement = $pdo->prepare($query);
         $result=null;
+
         try{
             $result = $statement->execute($bind)?
-                Result::getInstance(200,["uid"=>$entity->getUid()]):
+                Result::getInstance(100,["ok"=>"continue"]):
                 Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
             $pdo->commit();
         }
@@ -258,7 +258,7 @@ class Crud extends EntityCrud implements ICrud
         return $result;
 	}
 	
-	public function update(IEntity $entity)
+	public function update(IEntity $entity):Result
 	{
         $name = $entity->getEntityName($entity);
         $keyValues = $this->getKeyValByComma($entity);
@@ -293,7 +293,7 @@ class Crud extends EntityCrud implements ICrud
         return $result;
 	}
 	
-	public function get(IEntity $entity)
+	public function get(IEntity &$entity):Result
 	{
         $name = $entity->getEntityName();
         $query = "Select * From {$name} Where id=:id";
@@ -304,32 +304,36 @@ class Crud extends EntityCrud implements ICrud
         $entity = $statement->fetch();
         $result = ($entity->getId()===0)?
                     Result::getInstance(404,["error"=>"Id:{$entity->getId()} not found"]):
-                    Result::getInstance(200,$entity);
+                    Result::getInstance(100,["ok"=>"continue"]);
         $statement->closeCursor();
         $statement=null;
         $pdo=null;
 
         return $result;
 	}
-	
-	public function read(IEntity $entity)
+
+    public function getByUnique(IEntity &$entity,$uq):Result
 	{
         $name = $entity->getEntityName();
-        $query = "Select Id From {$name} Where uid=:uid";
+        $method= "get".ucfirst($uq);
+        $query = "Select id From {$name} Where {$uq}=:{$uq}";
         $pdo = $this->provider->getPdo();
         $statement = $pdo->prepare($query);
-        $statement->execute(["uid"=>$entity->getUid()]);
+        $statement->execute(["{$uq}"=>$entity->$method()]);
         $id = $statement->fetchColumn();
+        $entity->setId($id);
+        $result = ($id===false)?
+                    Result::getInstance(404,["error"=>"{$name} not found"]):
+                    Result::getInstance(100,["ok"=>"continue"]);
         $statement->closeCursor();
         $statement=null;
         $pdo=null;
 
-        return $id===false?
-                    new Result(404,["error"=>"Uid not found"]):
-                    new Result(200,["id"=>$id]);
+        return $result;
 	}
 
-    public function list(IEntity $entity,$fields){
+    public function list(IEntity $entity,$fields):Result
+    {
         $name = $entity->getEntityName();
         $query = "Select uid,{$fields} From {$name} Where active=1";
         $pdo = $this->provider->getPdo();
@@ -342,7 +346,8 @@ class Crud extends EntityCrud implements ICrud
         return $result;        
     }
 
-    public function listBy(IEntity $entity,$fields,$by){
+    public function listBy(IEntity $entity,$fields,$by):Result
+    {
         $name = $entity->getEntityName();
         $clause = array();
         $vals=array();
@@ -364,7 +369,8 @@ class Crud extends EntityCrud implements ICrud
         return $result;
     }
 
-    public function iSeeDeadPeople(IEntity $entity){
+    public function iSeeDeadPeople(IEntity $entity):Result
+    {
         $name = $entity->getEntityName();
         $query = "Select uid From {$name} Where active=0";
         $pdo = $this->provider->getPdo();
@@ -377,7 +383,8 @@ class Crud extends EntityCrud implements ICrud
         return $result;        
     }
 
-    public function disable(IEntity $entity){
+    public function disable(IEntity $entity):Result
+    {
         $name = $entity->getEntityName();
         $id = $entity->getId();
         $query = "Update {$name} Set active=0 Where id=:id";
@@ -406,7 +413,8 @@ class Crud extends EntityCrud implements ICrud
         return $result;
     }
 
-    public function enable(IEntity $entity){
+    public function enable(IEntity $entity):Result
+    {
         $name=$entity->getEntityName();
         $id = $entity->getId();
         $query = "Update {$name} Set active=1 Where id=:id";
@@ -435,7 +443,7 @@ class Crud extends EntityCrud implements ICrud
         return $result;
     }
 	
-	public function delete(IEntity $entity)
+	public function delete(IEntity $entity):Result
 	{
         $name = $entity->getEntityName();
         $id = $entity->getId();
@@ -450,7 +458,8 @@ class Crud extends EntityCrud implements ICrud
         return $result;
 	}
 
-    public function associate(IEntity $entity,IEntity $link){
+    public function associate(IEntity $entity,IEntity $link):Result
+    {
         $nameEntity=$entity->getEntityName();
         $nameLink=$link->getEntityName();
         $idEntity = "id{$nameEntity}";
@@ -482,7 +491,8 @@ class Crud extends EntityCrud implements ICrud
         return $result;
     }
 
-    public function deassociate(IEntity $entity, IEntity $link){
+    public function deassociate(IEntity $entity, IEntity $link):Result
+    {
         $nameEntity=$entity->getEntityName();
         $nameLink = $link->getEntityName();
         $idEntity = "id{$nameEntity}";
@@ -499,7 +509,8 @@ class Crud extends EntityCrud implements ICrud
         return $result;
     }
 
-    public function getAssociate(IEntity $link,$uidOnly=0){
+    public function getAssociate(IEntity $link,$uidOnly=0):Result
+    {
         $nameEntity=$entity->getEntityName();
         $nameLink =$entity->getEntityName();
         $idEntity = "id{$nameEntity}";
@@ -525,7 +536,8 @@ class Crud extends EntityCrud implements ICrud
         return $result;
     }
 
-    public function nameLike(IOnthos $onthos){
+    public function nameLike(IOnthos $onthos):Result
+    {
         $entity = $onthos->getEntityName();
         $name= $onthos->getName();
         $query = "Select uid,name From {$entity} Where name Like :name And active=1";
@@ -541,22 +553,55 @@ class Crud extends EntityCrud implements ICrud
         return $result;
     }
 
-    public function nameIs(IOnthos $onthos){
+    public function nameIs(IOnthos &$onthos):Result
+    {
         $entity = $onthos->getEntityName();
         $name= $onthos->getName();
-        $query = "Select uid,name From {$entity} Where name=:name And active=1";
+        $query = "Select id,uid From {$entity} Where name=:name And active=1";
         $pdo = $this->provider->getPdo();
         $statement = $pdo->prepare($query);
-        $result = $statement->execute(["name"=>$name])?
-                    Result::getInstance(200,$statement->fetch(PDO::FETCH_ASSOC)):
-                    Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
+        $statement->execute(["name"=>$name]);
+        $obj = $statement->fetch(PDO::FETCH_ASSOC);
+
+        if ($obj===false)$result = Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
+        else
+        {
+            $onthos->setUid($obj["uid"]);
+            $onthos->setId($obj["id"]);
+            $result = Result::getInstance(100,["ok"=>"continue"]);
+        }                    
 
         $pdo=null;
         $statement=null;
         return $result;
     }
 
-    public function descriptionLike(IObject $object){
+    public function getOnthosByUid(IOnthos &$onthos):Result
+    {
+        $entity = $onthos->getEntityName();
+        $name= $onthos->getName();
+        $query = "Select id,uid From {$entity} Where name=:name And active=1";
+
+        $pdo = $this->provider->getPdo();
+        $statement = $pdo->prepare($query);
+        $statement->execute(["name"=>$name]);
+        $obj = $statement->fetch(PDO::FETCH_ASSOC);
+
+        if ($obj===false)$result = Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
+        else
+        {
+            $onthos->setUid($obj["uid"]);
+            $onthos->setId($obj["id"]);
+            $result = Result::getInstance(100,["ok"=>"continue"]);
+        }                    
+
+        $pdo=null;
+        $statement=null;
+        return $result;
+    }
+
+    public function descriptionLike(IObject $object):Result
+    {
         $entity = $object->getEntityName();
         $description = $object->getDescription();
         $query = "Select uid,description From {$entity} Where description Like :description And active=1";
@@ -572,15 +617,47 @@ class Crud extends EntityCrud implements ICrud
         return $result;
     }
 
-    public function descriptionIs(IObject $object){
+    public function descriptionIs(IObject &$object):Result
+    {
         $entity = $object->getEntityName();
-        $description = $object->getDescription();
-        $query = "Select uid,description From {$entity} Where description=:description And active=1";
+        $description= $object->getDescription();
+        $query = "Select id,uid From {$entity} Where description=:description And active=1";
         $pdo = $this->provider->getPdo();
         $statement = $pdo->prepare($query);
-        $result = $statement->execute(["description"=>$description])?
-                        Result::getInstance(200,$statement->fetch(PDO::FETCH_ASSOC)):
-                        Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
+        $statement->execute(["description"=>$description]);
+        $obj = $statement->fetch(PDO::FETCH_ASSOC);
+        
+        if ($obj===false)$result = Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
+        else
+        {
+            $object->setUid($obj["uid"]);
+            $object->setId($obj["id"]);
+            $result = Result::getInstance(100,["ok"=>"continue"]);
+        }                    
+
+        $pdo=null;
+        $statement=null;
+        return $result;
+    }
+
+    public function getObjectByUid(IObject &$object):Result
+    {
+        $entity = $object->getEntityName();
+        $description= $object->getDescription();
+        $query = "Select id,description From {$entity} Where uid=:uid And active=1";
+        
+        $pdo = $this->provider->getPdo();
+        $statement = $pdo->prepare($query);
+        $statement->execute(["uid"=>$object->getUid()]);
+        $obj = $statement->fetch(PDO::FETCH_ASSOC);
+
+        if ($obj===false)$result = Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
+        else
+        {
+            $object->setUid($obj["uid"]);
+            $object->setId($obj["id"]);
+            $result = Result::getInstance(100,["ok"=>"continue"]);
+        }                    
 
         $pdo=null;
         $statement=null;
@@ -588,19 +665,26 @@ class Crud extends EntityCrud implements ICrud
     }
 }
 
-abstract class ViewModel
+//VIEWMODEL ABSTRACTION CLASS
+interface IViewModel{
+    public function toModel(array $entry=null,bool $itself=true);
+}
+abstract class ViewModel implements IViewModel
 {
     protected $name;
-    protected function __construct($name){
+    protected function __construct($name)
+    {
         $this->name = $name;
     }
 
-    public static function fillModelWithUid(IEntity $entity,$uid){
+    public static function fillModelWithUid(IEntity $entity,string $uid)
+    {
         $entity->setUid($uid);
         return $entity;
     }
 
-    public static function fillModelWithFields(IEntity $entity,$entry){
+    public static function fillModelWithFields(IEntity $entity,array $entry)
+    {
         foreach($entry as $prop=>$val){
             $method = "set".ucfirst($prop);
             $entity->$method($val);
@@ -608,7 +692,8 @@ abstract class ViewModel
         return $entity;
     }
 
-    public static function fillModelWithProperties(IEntity $entity,$entry){
+    public static function fillModelWithProperties(IEntity $entity,array $entry)
+    {
         foreach($entity->getProperties() as $prop){
             $method = "set".ucfirst($prop);
             $entity->$method($entry[$prop]);
@@ -616,7 +701,8 @@ abstract class ViewModel
         return $entity;
     }
 
-    protected function fill(IEntity $entity,$entry,$itself=true){
+    protected function fill(IEntity $entity,array $entry,bool $itself=true)
+    {
         if (isset($entry["uid"]))
             return self::fillModelWithUid($entity,$entry["uid"]);
         else if ($itself)
@@ -626,12 +712,14 @@ abstract class ViewModel
     }
 
 
-    public function toModel($entry=null,$itself=true){
+    public function toModel(array $entry=null,bool $itself=true)
+    {
         $entity = new $this->name();
         return isset($entry)?$this->fill($entity,$entry,$itself):$entity;
     }
 }
 
+//VIEWSET ABSTRACTION CLASS
 abstract class ViewSet{
     protected $valid;
 
@@ -640,21 +728,75 @@ abstract class ViewSet{
         $this->valid= $valid;
     }
 
-    protected function __destruct(){
+    protected function __destruct()
+    {
         $this->valid = null;
     }
 
-    public function getValid(){
+    public function getValid():Result
+    {
         return $this->valid;
     }
 
-    protected function getPayload($field=null){
-        return isset($field)?$this->valid->getInfo()[$field]:$this->valid->getInfo();
+    protected function verifyKey($key){
+        $payload = $this->valid->getInfo();
+        return array_key_exists($key,$payload)?
+                new Result(100,["ok"=>"continue"]):
+                new Result(403,["error"=>"Provided credentials has no association with provided app"]);
     }
 
-    public function authorize(){
-        return assert_result($this->valid);
+    protected function getPayload($field=null)
+    {
+        return $this->valid->getInfo($field);
+    }
+
+    public function authorize()
+    {
+        return $this->valid->assert(100);
     }  
+}
+
+abstract class Validation{
+    protected $entry;
+    protected $viewModel;
+
+    protected function __construct(array $entry, IViewModel $viewModel){
+        $this->entry = $entry;
+        $this->viewModel= $viewModel;
+    }
+
+    protected function validate_uid(){
+        return (strlen($this->entry["uid"])===36)?
+                    new Result(100,null):
+                    new Result(400,["error"=>"Invalid guid format"]);
+    }
+
+    protected function validate_id(){
+        return ($this->entry["id"]>0)?
+            new Result(100,null):
+            new Result(400,["error"=>"Invalid id format"]);
+    }
+
+    public function pass(){
+        return $this->viewModel->toModel();
+    }
+
+    public function run(array $fields):Result{
+        foreach($fields as $field){
+            $method= "validate_{$field}";
+            $assert100 = $this->$method();
+            if (!$assert100->assert(100))return $assert100;
+        }
+
+        $var_model=[];
+        foreach($fields as $field){
+            $var_model[$field] = $this->entry[$field];
+        }
+
+        return new Result(100,[
+            "model"=>$this->viewModel->toModel($var_model,false)
+        ]);
+    }
 }
 
 ?>

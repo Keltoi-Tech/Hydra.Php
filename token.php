@@ -84,10 +84,10 @@ abstract class Jwt{
         $payloadValidation = $this->validate_payload($payload);
 
         return 
-            ($headerValidation->getStatus()==200)?
-                ($payloadValidation->getStatus()==200)?
+            ($headerValidation->assert(100))?
+                ($payloadValidation->assert(100))?
                     ($this->get_hash($header,$payload)===$signature)?
-                        new Result(200,$payload->getObject()):
+                        new Result(100,$payload->getObject()):
                         new Result(401,["error"=>"Unauthorized"])
                     :
                     $payloadValidation
@@ -123,7 +123,7 @@ class HS256Jwt extends Jwt{
 
     protected function validate_header(ObjectToken $header):Result{
         return ($header->getObject()["alg"]=="HS256")?
-                    new Result(200,null):
+                    new Result(100,["HS256Jwt"=>"validate_header"]):
                     new Result(400,["error"=>"Algorithm type not match"]);
     }
 
@@ -137,7 +137,7 @@ class HS256Jwt extends Jwt{
         if (isset($p["exp"]))
             if ($now>$p["exp"]) return new Result(401,["error"=>"Token expired"]);
 
-        return new Result(200,null);
+        return new Result(100,["HS256Jwt"=>"validate_payload"]);
     }
 
     protected function get_hash(ObjectToken $header,ObjectToken $payload):string{

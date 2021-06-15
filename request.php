@@ -2,6 +2,12 @@
     namespace net;
     use auth\Auth;
 
+    function normalizeEntityName($name){
+        $eachPart = explode('-',$name);
+        array_walk($eachPart,'arrayUcfirst');
+        return implode('',$eachPart);
+    }
+
     class Request
     {
         private $queryString;
@@ -19,7 +25,7 @@
             $initialArray = explode('/',$_SERVER['REQUEST_URI']);
 
             $this->version = $initialArray[1];
-            $this->entity = ucfirst($initialArray[2]);
+            $this->entity = normalizeEntityName($initialArray[2]);//ucfirst($initialArray[2]);
             $this->method = strtolower($_SERVER['REQUEST_METHOD']);
             $this->stream = json_decode(file_get_contents("php://input"),true);
             $this->queryString = (count($_REQUEST)>0)?$_REQUEST:null;
@@ -60,14 +66,13 @@
             return $this->queryString[$name];
         }
 
-        public static function getInstance($headers=null):Request{
-            header('Content-Type: application/json; charset=utf-8');
+        public static function getInstance(array $headers=null):Request{
             if (isset($headers)){
                 foreach($headers as $header){
                     header($header);
                 }
             }
-
+            header('Content-Type: application/json; charset=utf-8');
             return new Request();
         }
     }

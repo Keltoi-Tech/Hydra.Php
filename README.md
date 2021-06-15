@@ -1,7 +1,7 @@
 # Hydra.Php
  Cut off one head and two grow back
 
-Hydra.Php is a single purpose library (or a lightweigth framework, if you prefer).
+Hydra.Php is a single purpose library (or a lightweight framework, if you prefer).
 
 Its only purpose is build faster and reliable APIs, applying best API project pratices
 

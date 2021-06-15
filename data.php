@@ -53,12 +53,20 @@ class Result {
         return $this->status;
     }
 
+    public function hasKey($field):bool{
+        return array_key_exists($field,$this->info);
+    }
+
     public function getInfo($field=null){
         return isset($field)?$this->info[$field]:$this->info;
     }
 
     public function assert(int $statusCode):bool{
         return $this->status===$statusCode;
+    }
+
+    public function notAssert(int $statusCode):bool{
+        return !$this->assert($statusCode);
     }
 
     public function setInfoEntity($name,$val){
@@ -109,7 +117,8 @@ class Provider implements IProvider
     public function getPdo():PDO
     {
         $dsn = "{$this->dbms}:host={$this->host};dbname={$this->database};charset=utf8";
-        return new PDO($dsn,$this->login,$this->password);
+        $result =  new PDO($dsn,$this->login,$this->password);
+        return $result;
     }
 	
 	public function getCall():string
@@ -122,7 +131,6 @@ class Provider implements IProvider
         return new Provider($filePath);
     }
 }
-
 
 //OPERATION
 //DATA TOOLS FOR CRUD
@@ -193,6 +201,7 @@ interface ICrud{
     public function insert(IEntity &$entity):Result;
     public function update(IEntity $entity):Result;
     public function get(IEntity &$entity):Result;
+    public function read(IEntity &$entity):Result;
     public function getByUnique(IEntity &$entity,$uq):Result;
     public function list(IEntity $entity,$fields):Result;
     public function listBy(IEntity $entity,$fields,$by):Result;
@@ -301,16 +310,41 @@ class Crud extends EntityCrud implements ICrud
         $statement = $pdo->prepare($query);
         $statement->setFetchMode(PDO::FETCH_CLASS,"\\model\\".$name);
         $statement->execute(["id"=>$entity->getId()]);
-        $entity = $statement->fetch();
-        $result = ($entity->getId()===0)?
-                    Result::getInstance(404,["error"=>"Id:{$entity->getId()} not found"]):
-                    Result::getInstance(100,["ok"=>"continue"]);
+        $o = $statement->fetch();
+        if ($o===false) $result = Result::getInstance(404,["error"=>"{$name} not found"]);
+        else{
+            $entity=$o;
+            $result = Result::getInstance(100,["ok"=>"continue"]);
+        }
+        
         $statement->closeCursor();
         $statement=null;
         $pdo=null;
 
         return $result;
 	}
+
+    public function read(IEntity &$entity):Result
+    {
+        $name = $entity->getEntityName();
+        $query = "Select * From {$name} Where uid=:uid";
+        $pdo = $this->provider->getPdo();
+        $statement = $pdo->prepare($query);
+        $statement->setFetchMode(PDO::FETCH_CLASS,"\\model\\".$name);
+        $statement->execute(["uid"=>$entity->getUid()]);
+        $o = $statement->fetch();
+        if ($o===false) $result = Result::getInstance(404,["error"=>"{$name} not found"]);
+        else{
+            $entity=$o;
+            $result = Result::getInstance(100,["ok"=>"continue"]);
+        }
+
+        $statement->closeCursor();
+        $statement=null;
+        $pdo=null;
+
+        return $result;
+    }
 
     public function getByUnique(IEntity &$entity,$uq):Result
 	{
@@ -579,19 +613,19 @@ class Crud extends EntityCrud implements ICrud
     public function getOnthosByUid(IOnthos &$onthos):Result
     {
         $entity = $onthos->getEntityName();
-        $name= $onthos->getName();
-        $query = "Select id,uid From {$entity} Where name=:name And active=1";
-
+        $description= $onthos->getName();
+        $query = "Select id,name From {$entity} Where uid=:uid And active=1";
+        
         $pdo = $this->provider->getPdo();
         $statement = $pdo->prepare($query);
-        $statement->execute(["name"=>$name]);
+        $statement->execute(["uid"=>$onthos->getUid()]);
         $obj = $statement->fetch(PDO::FETCH_ASSOC);
 
         if ($obj===false)$result = Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
         else
         {
-            $onthos->setUid($obj["uid"]);
             $onthos->setId($obj["id"]);
+            $onthos->setName($obj["name"]);
             $result = Result::getInstance(100,["ok"=>"continue"]);
         }                    
 
@@ -654,8 +688,8 @@ class Crud extends EntityCrud implements ICrud
         if ($obj===false)$result = Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
         else
         {
-            $object->setUid($obj["uid"]);
             $object->setId($obj["id"]);
+            $object->setUid($obj["description"]);
             $result = Result::getInstance(100,["ok"=>"continue"]);
         }                    
 
@@ -667,7 +701,7 @@ class Crud extends EntityCrud implements ICrud
 
 //VIEWMODEL ABSTRACTION CLASS
 interface IViewModel{
-    public function toModel(array $entry=null,bool $itself=true);
+    public function toModel(bool $itself=true,?array $entry);
 }
 abstract class ViewModel implements IViewModel
 {
@@ -703,16 +737,13 @@ abstract class ViewModel implements IViewModel
 
     protected function fill(IEntity $entity,array $entry,bool $itself=true)
     {
-        if (isset($entry["uid"]))
-            return self::fillModelWithUid($entity,$entry["uid"]);
-        else if ($itself)
-            return self::fillModelWithProperties($entity,$entry);
-        else 
-            return self::fillModelWithFields($entity,$entry);
+        return $itself?
+            self::fillModelWithProperties($entity,$entry):
+            self::fillModelWithFields($entity,$entry);
     }
 
 
-    public function toModel(array $entry=null,bool $itself=true)
+    public function toModel(bool $itself=true,?array $entry)
     {
         $entity = new $this->name();
         return isset($entry)?$this->fill($entity,$entry,$itself):$entity;
@@ -760,7 +791,7 @@ abstract class Validation{
     protected $entry;
     protected $viewModel;
 
-    protected function __construct(array $entry, IViewModel $viewModel){
+    protected function __construct(array $entry=null, IViewModel $viewModel){
         $this->entry = $entry;
         $this->viewModel= $viewModel;
     }
@@ -777,24 +808,20 @@ abstract class Validation{
             new Result(400,["error"=>"Invalid id format"]);
     }
 
-    public function pass(){
-        return $this->viewModel->toModel();
-    }
-
-    public function run(array $fields):Result{
+    public function run(...$fields):Result
+    {
+        $var_model=[];
         foreach($fields as $field){
             $method= "validate_{$field}";
             $assert100 = $this->$method();
             if (!$assert100->assert(100))return $assert100;
-        }
-
-        $var_model=[];
-        foreach($fields as $field){
-            $var_model[$field] = $this->entry[$field];
+            else $var_model[$field] = $this->entry[$field];
         }
 
         return new Result(100,[
-            "model"=>$this->viewModel->toModel($var_model,false)
+            "model"=>isset($fields)?
+                $this->viewModel->toModel(false,$var_model):
+                $this->viewModel->toModel(true,null)
         ]);
     }
 }

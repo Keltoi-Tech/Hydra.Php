@@ -1,1 +1,9 @@
-<?php?>
+<?php
+    include_once("person.php");
+    include_once("locale.php");
+    include_once("address.php");
+    include_once("contactType.php");
+    include_once("contact.php");
+    include_once("documentType.php");
+    include_once("document.php");
+?>

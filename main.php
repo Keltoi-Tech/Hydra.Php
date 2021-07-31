@@ -20,7 +20,7 @@ function main(){
         "Access-Control-Allow-Headers: Authorization, Content-Type,Accept, Origin"
     ]);
     
-    $provider = Provider::getInstance("info_provider.json");
+    $provider = Provider::getInstance("provider.json");
     
     $entity = $request->getEntity();
     $auth = $request->getAuth();

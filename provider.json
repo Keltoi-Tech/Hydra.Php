@@ -1,1 +1,1 @@
-{"dbms":"[DBMS]","host":"[HOST]","database":"[DATABASE]","login":"[LOGIN]","password":"[PWD]","callVerb":"CALL","mustCallVerb":"true","issuer":"[ISSUER]"}
+{"dbms":"[DBMS]","host":"[HOST]","database":"[DATABASE]","login":"[LOGIN]","password":"[PASSWORD]","callVerb":"[CALL]","mustCallVerb":"true","issuer":"Hydra"}

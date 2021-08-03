@@ -1,5 +1,5 @@
 <?php
-namespace concept;
+namespace hydra;
 
 interface ILog{
     public function getAuthor():string;

@@ -1,6 +1,6 @@
 <?php
 use persistence\IProvider;
-use concept\IAuth;
+use hydra\IAuth;
 
 class ViewSetFactory{
     public static function getInstance($entity,IProvider $provider, IAuth $auth=null){

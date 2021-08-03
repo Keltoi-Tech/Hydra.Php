@@ -1,139 +1,15 @@
 <?php
 namespace persistence;
-use concept\{
+use persistence\IProvider;
+use hydra\{
     IEntity,
     IOnthos,
-    IObject
+    IObject,
+    Result
 };
 use PDO;
 
-//ENTITY BASE CLASS
-abstract class Entity{
-    protected $id;
-    protected $uid;
-    protected $db;
-
-    protected function __construct(array $db){
-        $this->db = $db;
-    }
-
-    public function getId():int{
-        return $this->id;
-    }
-    public function setId(int $id){
-        $this->id = $id;
-    }       
-    public function getUid():string{
-        return $this->uid;
-    }
-    public function setUid(string $uid){
-        $this->uid = $uid;
-    }       
-
-    public function getDB():array{
-        return $this->db;
-    }
-
-    public function getProperties():array{
-        return array_keys($this->db);
-    }
-}
-
-//RESULT ABSTRACTION
-class Result {
-    private $status;
-    private $info;
-    function __construct($status,$info)
-    {
-        $this->status = $status;
-        $this->info = $info;
-    }
-
-    public function getStatus():int{
-        return $this->status;
-    }
-
-    public function hasKey($field):bool{
-        return array_key_exists($field,$this->info);
-    }
-
-    public function getInfo($field=null){
-        return isset($field)?$this->info[$field]:$this->info;
-    }
-
-    public function assert(int $statusCode):bool{
-        return $this->status===$statusCode;
-    }
-
-    public function notAssert(int $statusCode):bool{
-        return !$this->assert($statusCode);
-    }
-
-    public function setInfoEntity($name,$val){
-        $call = "set".ucfirst($name);
-        $this->info->$call($val);
-    }
-
-    public static function getInstance($status,$info):Result{
-        return new Result($status,$info);
-    }
-}
-//DATA PROVIDER
-interface IProvider{
-    public function getPdo():PDO;
-    public function getCall():string;
-    public function getHash():string;
-} 
-class Provider implements IProvider
-{
-	private $dbms;
-	private $host;
-	private $database;
-	private $login;
-	private $password;
-	private $callVerb;
-	private $mustCallVerb;
-    private $issuer;
-	
-	function __construct($filePath)
-	{
-		$obj = json_decode(file_get_contents($filePath));
-		
-		$this->dbms = $obj->dbms;
-		$this->host = $obj->host;
-		$this->database = $obj->database;
-		$this->login = $obj->login;
-		$this->password = $obj->password;
-		$this->callVerb = $obj->callVerb;
-		$this->mustCallVerb = $obj->mustCallVerb;
-        $this->issuer = $obj->issuer;
-	}
-
-    public function getHash():string
-    {
-        return hash("sha256",$this->issuer);
-    }
-
-    public function getPdo():PDO
-    {
-        $dsn = "{$this->dbms}:host={$this->host};dbname={$this->database};charset=utf8";
-        $result =  new PDO($dsn,$this->login,$this->password);
-        return $result;
-    }
-	
-	public function getCall():string
-	{
-		return ($this->mustCallVerb)?$this->callVerb. ' ':'';
-	}
-
-    public static function getInstance($filePath):Provider
-    {
-        return new Provider($filePath);
-    }
-}
-
-//OPERATION
-//DATA TOOLS FOR CRUD
+//ABSTRACTION
 abstract class EntityCrud
 {
     protected $provider;
@@ -196,6 +72,7 @@ abstract class EntityCrud
         $this->provider = null;
 	}
 }
+
 //CRUD
 interface ICrud{
     public function insert(IEntity &$entity):Result;
@@ -698,132 +575,4 @@ class Crud extends EntityCrud implements ICrud
         return $result;
     }
 }
-
-//VIEWMODEL ABSTRACTION CLASS
-interface IViewModel{
-    public function toModel(bool $itself=true,?array $entry);
-}
-abstract class ViewModel implements IViewModel
-{
-    protected $name;
-    protected function __construct($name)
-    {
-        $this->name = $name;
-    }
-
-    public static function fillModelWithUid(IEntity $entity,string $uid)
-    {
-        $entity->setUid($uid);
-        return $entity;
-    }
-
-    public static function fillModelWithFields(IEntity $entity,array $entry)
-    {
-        foreach($entry as $prop=>$val){
-            $method = "set".ucfirst($prop);
-            $entity->$method($val);
-        }
-        return $entity;
-    }
-
-    public static function fillModelWithProperties(IEntity $entity,array $entry)
-    {
-        foreach($entity->getProperties() as $prop){
-            $method = "set".ucfirst($prop);
-            $entity->$method($entry[$prop]);
-        }
-        return $entity;
-    }
-
-    protected function fill(IEntity $entity,array $entry,bool $itself=true)
-    {
-        return $itself?
-            self::fillModelWithProperties($entity,$entry):
-            self::fillModelWithFields($entity,$entry);
-    }
-
-
-    public function toModel(bool $itself=true,?array $entry)
-    {
-        $entity = new $this->name();
-        return isset($entry)?$this->fill($entity,$entry,$itself):$entity;
-    }
-}
-
-//VIEWSET ABSTRACTION CLASS
-abstract class ViewSet{
-    protected $valid;
-
-    protected function __construct(Result $valid)    
-    {
-        $this->valid= $valid;
-    }
-
-    protected function __destruct()
-    {
-        $this->valid = null;
-    }
-
-    public function getValid():Result
-    {
-        return $this->valid;
-    }
-
-    protected function verifyKey($key){
-        $payload = $this->valid->getInfo();
-        return array_key_exists($key,$payload)?
-                new Result(100,["ok"=>"continue"]):
-                new Result(403,["error"=>"Provided credentials has no association with provided app"]);
-    }
-
-    protected function getPayload($field=null)
-    {
-        return $this->valid->getInfo($field);
-    }
-
-    public function authorize()
-    {
-        return $this->valid->assert(100);
-    }  
-}
-
-abstract class Validation{
-    protected $entry;
-    protected $viewModel;
-
-    protected function __construct(array $entry=null, IViewModel $viewModel){
-        $this->entry = $entry;
-        $this->viewModel= $viewModel;
-    }
-
-    protected function validate_uid(){
-        return (strlen($this->entry["uid"])===36)?
-                    new Result(100,null):
-                    new Result(400,["error"=>"Invalid guid format"]);
-    }
-
-    protected function validate_id(){
-        return ($this->entry["id"]>0)?
-            new Result(100,null):
-            new Result(400,["error"=>"Invalid id format"]);
-    }
-
-    public function run(...$fields):Result
-    {
-        $var_model=[];
-        foreach($fields as $field){
-            $method= "validate_{$field}";
-            $assert100 = $this->$method();
-            if (!$assert100->assert(100))return $assert100;
-            else $var_model[$field] = $this->entry[$field];
-        }
-
-        return new Result(100,[
-            "model"=>isset($fields)?
-                $this->viewModel->toModel(false,$var_model):
-                $this->viewModel->toModel(true,null)
-        ]);
-    }
-}
-
 ?>

@@ -17,13 +17,12 @@ class Definition implements IDefinition{
     function __construct(IEntity $entity){
         $this->table = $entity->getEntityName();
         $structure = $entity->getDB();
-        $provider = $this->provider;
 
         foreach($structure as $field=>$definition){
             $definition->setName($field);
         }
 
-        $this->fields = $definition;
+        $this->fields = $structure;
     }
 
     public function getTable(){
@@ -50,7 +49,7 @@ class Definition implements IDefinition{
         $properties=[];
         $constraints=[];
         
-        array_push($properties,"id int not null primary auto_increment");
+        array_push($properties,"id int unsigned not null primary key auto_increment");
         array_push($properties,"uid char(36) not null collate latin1_swedish_ci unique");
         foreach($this->fields as $field){
             array_push($properties,$field->build());     
@@ -60,9 +59,10 @@ class Definition implements IDefinition{
         array_push($properties,"creationDate datetime not null default current_timestamp");
         array_push($properties,"updateDate datetime null on update current_timestamp");
         
-        $f = implode(",",$properties) . "," . implode(",",$constraints);
+        $p = implode(",",$properties);
+        $c = empty($constraints)?"":"," . implode(",",$constraints);
 
-        return "create table {$this->table}($f)";
+        return "create table {$this->table}($p $c)";
     }
 
     public static function getInstance(IEntity $entity){

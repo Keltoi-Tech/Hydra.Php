@@ -7,13 +7,14 @@ class Schema
     protected $nullable;
     protected $unique;
     protected $default;
+    protected $comment;
 
     public function __construct(
         string $type,
         bool $nullable=true,
         bool $unique=false,
         $default=null,
-        string $comment=""
+        string $comment=null
     ) 
     {
         $this->type = $type;
@@ -31,13 +32,16 @@ class Schema
     }
 
     public function build():string{
-        $null = $this->nullable?"NULL":"NOT NULL";
-        $uq = $this->unique?"UNIQUE":"";
+        $null = $this->nullable?"null":"not null";
+        $uq = $this->unique?"unique":"";
         $default = $this->nullable?"":
                         isset($this->default)?
-                            "DEFAULT {$this->default}":
+                            "default {$this->default}":
                             "";
-        $comment=$comment==""?"":"COMMENT '{$comment}'";
+        $comment=isset($this->comment)?
+                        "comment '{$this->comment}'":
+                        "";
+
         return "{$this->name} {$this->type} {$null} {$default} {$uq} {$comment}";
     }
 }
@@ -50,8 +54,8 @@ class TextSchema extends Schema
         bool $nullable=true,
         bool $unique=false,
         $default=null,
-        string $collation="",
-        string $comment=""
+        string $collation=null,
+        string $comment=null
     ){
         parent::__construct(
             $type,
@@ -70,8 +74,12 @@ class TextSchema extends Schema
                         isset($this->default)?
                             "default {$this->default}":
                             "";
-        $comment=$comment==""?"":"comment '{$comment}'";
-        $collation = $collation==""?"":"collate {$collation}";
+        $comment=isset($this->comment)?
+                    "comment '{$this->comment}'":"";
+
+        $collation=isset($this->collation)?
+                        "collate {$this->collation}":"";
+                    
         return "{$this->name} {$this->type} {$null} {$default} {$uq} {$collation} {$comment}";
     }
 }

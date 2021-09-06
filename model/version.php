@@ -7,7 +7,7 @@ class Version extends Entity implements IEntity,ISerializable
 
     public function __construct(){
         parent::__construct([
-            "number"=>new Schema("DECIMAL(9,2)",false,true,1.0)
+            "number"=>new Schema("DECIMAL(9,2)",false,true,1.0,"Version number")
         ]);
     }
 

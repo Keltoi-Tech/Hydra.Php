@@ -4,10 +4,12 @@ include_once("model/version.php");
 include_once("repository/version.php");
 include_once("repository/migration.php");
 use hydra\{IAuth,ViewSet,Result};
-use model\Version;
 use repository\{VersionRepository,MigrationRepository};
-use persistence\{IProvider,Migration,Defintion};
+use persistence\{IProvider,Migration,Definition};
 use token\HS256Jwt;
+use model\{
+    Version
+};
 
 class MigrationViewSet extends ViewSet
 {
@@ -31,6 +33,10 @@ class MigrationViewSet extends ViewSet
         $this->migrationRepository = null;
     }
 
+    public function postAuthTerraform():Result{
+        return $this->migrationRepository->authTerraform();
+    }
+
     function postTerraform():Result{
         return $this->migrationRepository->terraform(
             Definition::getInstance(new Version())
@@ -41,7 +47,7 @@ class MigrationViewSet extends ViewSet
         return new MigrationViewSet(
             isset($auth)?
                 HS256Jwt::validate($auth->getAuth(),$provider->getHash()): 
-                new Result(401,["error"=>"No auth provided"]),
+                new Result(100,["request"=>"token"]),
             VersionRepository::getInstance($provider),
             MigrationRepository::getInstance($provider)
         );

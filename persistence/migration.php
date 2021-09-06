@@ -2,7 +2,8 @@
     namespace persistence;
     use hydra\Result;
     use token\{HS256Jwt,ObjectToken};
-
+    use DateInterval;
+    use PDO;
     class Migration{
         private $provider;
         public function __construct(IProvider $provider){
@@ -28,7 +29,7 @@
                 ])
             );
             $jwt=null;
-            return new Result(100,["token"=>$token]);
+            return new Result(200,["token"=>$token]);
         }
 
         public function schemaAnalysis(IDefinition $definition):Result{
@@ -57,23 +58,22 @@
             return $exists;
         }
 
-        public function create(IDefinition $defintion):Result
+        public function create(IDefinition $definition):Result
         {
             $result=Result::getInstance(404,["error"=>"not found"]);
-
             $pdo = $this->provider->getPdo();
             try{
                 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                $pdo->exec($defintion->create());
+                $pdo->exec($definition->create());
                 $result = new Result(100,
                 [
-                    "ok"=>"Table {$definition->getName()} sucessfull created"
+                    "ok"=>"Table {$definition->getTable()} sucessfull created"
                 ]);
             }
             catch(PDOException $ex)
             {
                 $result = new Result(400,[
-                    "error"=>"Error on create table {$defintion->getName()}: {$ex->getMessage()}"
+                    "error"=>"Error on create table {$definition->getTable()}: {$ex->getMessage()}"
                 ]);
             }
             finally

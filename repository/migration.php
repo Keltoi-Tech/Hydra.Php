@@ -17,11 +17,15 @@ class MigrationRepository extends Crud
         return new MigrationRepository($provider);
     }
 
-    public function terraform(...$defintions):Result{
+    public function authTerraform():Result{
+        return $this->migration->request("terraform");
+    }
+
+    public function terraform(...$definitions):Result{
         $messages = [];
         foreach ($definitions as $definition)
         {
-            $result = $this->migration->create($defintion);
+            $result = $this->migration->create($definition);
             array_push(
                 $messages,
                 $result->getInfo($result->assert(100)?"ok":"error")

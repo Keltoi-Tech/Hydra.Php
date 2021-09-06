@@ -1,7 +1,6 @@
 <?php
     namespace net;
-    use persistence\Result;
-    use concept\ISerializable;
+    use hydra\{Result,ISerializable};
     use JsonSerializable;
 
     class Response implements JsonSerializable

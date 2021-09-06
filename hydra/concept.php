@@ -12,7 +12,7 @@ interface IAuth{
 }
 
 interface ISerializable{
-    public function serialize();
+    public function serialize():array;
 }
 
 interface IEntity

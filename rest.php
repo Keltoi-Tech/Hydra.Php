@@ -1,8 +1,7 @@
 <?php
 namespace api;
-use concept\IRest;
 use net\Request;
-use persistence\Result;
+use hydra\Result;
 
 class Rest
 {

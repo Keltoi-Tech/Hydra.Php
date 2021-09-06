@@ -5,7 +5,6 @@ use PDO;
 //DATA PROVIDER
 interface IProvider{
     public function getPdo():PDO;
-    public function getCall():string;
     public function getHash():string;
 } 
 
@@ -16,8 +15,6 @@ class Provider implements IProvider
 	private $database;
 	private $login;
 	private $password;
-	private $callVerb;
-	private $mustCallVerb;
     private $issuer;
 	
 	function __construct($filePath)
@@ -29,8 +26,6 @@ class Provider implements IProvider
 		$this->database = $obj->database;
 		$this->login = $obj->login;
 		$this->password = $obj->password;
-		$this->callVerb = $obj->callVerb;
-		$this->mustCallVerb = $obj->mustCallVerb;
         $this->issuer = $obj->issuer;
 	}
 
@@ -45,11 +40,6 @@ class Provider implements IProvider
         $result =  new PDO($dsn,$this->login,$this->password);
         return $result;
     }
-	
-	public function getCall():string
-	{
-		return ($this->mustCallVerb)?$this->callVerb. ' ':'';
-	}
 
     public static function getInstance($filePath):Provider
     {

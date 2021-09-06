@@ -1,4 +1,5 @@
 <?php
+include_once("migration.php");
 use persistence\IProvider;
 use hydra\IAuth;
 

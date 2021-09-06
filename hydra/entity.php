@@ -4,6 +4,8 @@ namespace hydra;
 abstract class Entity{
     protected $id;
     protected $uid;
+    protected $creationDate;
+    protected $updateDate;
     protected $db;
 
     protected function __construct(array $db){
@@ -16,12 +18,21 @@ abstract class Entity{
     public function setId(int $id){
         $this->id = $id;
     }       
+
     public function getUid():string{
         return $this->uid;
     }
     public function setUid(string $uid){
         $this->uid = $uid;
-    }       
+    }
+    
+    public function creationDate():DateTime{
+        return $this->creationDate;
+    }
+    
+    public function updateDate():DateTime{
+        return $this->updateDate;
+    }
 
     public function getDB():array{
         return $this->db;

@@ -38,9 +38,12 @@ class MigrationViewSet extends ViewSet
     }
 
     function postTerraform():Result{
-        return $this->migrationRepository->terraform(
+        $result=  $this->migrationRepository->terraform(
             Definition::getInstance(new Version())
         );
+        $this->versionRepository->createFirst();
+
+        return $result;
     }
 
     public static function getInstance(IProvider $provider, IAuth $auth=null){

@@ -6,4 +6,5 @@
     include_once("viewSet.php");
     include_once("validation.php");
     include_once("schema.php");
+    include_once("config.php");
 ?>

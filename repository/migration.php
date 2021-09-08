@@ -1,24 +1,50 @@
 <?php
 namespace repository;
 use persistence\{IProvider,IDefinition,Crud,Migration};
-use hydra\{Result};
+use hydra\{Result,IConfig};
+use token\{HS256Jwt,ObjectToken};
 use PDO;
 use DateInterval;
 
 class MigrationRepository extends Crud
 {
     private $migration;
-    private function __construct(IProvider $provider){
+    private $config;
+    private function __construct(IProvider $provider,IConfig $config){
         parent::__construct($provider);
         $this->migration = new Migration($provider);
+        $this->config = $config;
     }
 
-    public static function getInstance(IProvider $provider){
-        return new MigrationRepository($provider);
+    public static function getInstance(IProvider $provider,IConfig $config){
+        return new MigrationRepository($provider,$config);
     }
 
-    public function authTerraform():Result{
-        return $this->migration->request("terraform");
+    public function authTerraform(string $app, string $password):Result{
+        if ($this->config->validateAppHash($app,$password)){
+            $secondsToExpire = $this->config->getExpire()->migration;
+            $secret = $this->config->getHash();
+            $expire = date_create();
+            $expire->add(new DateInterval("PT{$secondsToExpire}S"));
+            $now = date_create();
+            $jwt = HS256Jwt::getInstance($secret);
+            $token = $jwt->getToken(
+                ObjectToken::getInstance([
+                    "alg"=>"HS256",
+                    "typ"=>"JWT"
+                ]),
+                ObjectToken::getInstance([
+                    "iss"=>$this->config->getAppName(),
+                    "iat"=>intval(date_format($now,"U")),
+                    "exp"=>intval(date_format($expire,"U")),
+                    "sub"=>"terraform"
+                ])
+            );
+            $jwt=null;
+
+            return new Result(200,["token"=>$token]);
+
+        }else return new Result(401,["error"=>"Unauthenticated"]);           
     }
 
     public function terraform(...$definitions):Result{

@@ -5,39 +5,21 @@ use PDO;
 //DATA PROVIDER
 interface IProvider{
     public function getPdo():PDO;
-    public function getHash():string;
 } 
 
 class Provider implements IProvider
 {
-	private $dbms;
-	private $host;
-	private $database;
-	private $login;
-	private $password;
-    private $issuer;
+    private $obj;
 	
 	function __construct($filePath)
 	{
-		$obj = json_decode(file_get_contents($filePath));
-		
-		$this->dbms = $obj->dbms;
-		$this->host = $obj->host;
-		$this->database = $obj->database;
-		$this->login = $obj->login;
-		$this->password = $obj->password;
-        $this->issuer = $obj->issuer;
+		$this->obj = json_decode(file_get_contents($filePath));
 	}
-
-    public function getHash():string
-    {
-        return hash("sha256",$this->issuer);
-    }
 
     public function getPdo():PDO
     {
-        $dsn = "{$this->dbms}:host={$this->host};dbname={$this->database};charset=utf8";
-        $result =  new PDO($dsn,$this->login,$this->password);
+        $dsn = "{$this->obj->dbms}:host={$this->obj->host};dbname={$this->obj->database};charset=utf8";
+        $result =  new PDO($dsn,$this->obj->login,$this->obj->password);
         return $result;
     }
 

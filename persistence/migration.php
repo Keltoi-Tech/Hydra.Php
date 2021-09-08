@@ -1,35 +1,13 @@
 <?php
     namespace persistence;
     use hydra\Result;
-    use token\{HS256Jwt,ObjectToken};
     use DateInterval;
     use PDO;
+
     class Migration{
         private $provider;
         public function __construct(IProvider $provider){
             $this->provider = $provider;
-        }
-
-        public function request($op):Result{
-            $secret = $this->provider->getHash();
-            $expire = date_create();
-            $expire->add(new DateInterval('PT11S'));
-            $now = date_create();
-            $jwt = HS256Jwt::getInstance($secret);
-            $token = $jwt->getToken(
-                ObjectToken::getInstance([
-                    "alg"=>"HS256",
-                    "typ"=>"JWT"
-                ]),
-                ObjectToken::getInstance([
-                    "iss"=>"Keltoi",
-                    "iat"=>intval(date_format($now,"U")),
-                    "exp"=>intval(date_format($expire,"U")),
-                    "sub"=>hash("sha256",$op)
-                ])
-            );
-            $jwt=null;
-            return new Result(200,["token"=>$token]);
         }
 
         public function schemaAnalysis(IDefinition $definition):Result{

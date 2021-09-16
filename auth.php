@@ -1,6 +1,6 @@
 <?php
     namespace auth;
-    use concept\IAuth;
+    use hydra\IAuth;
 
     class Auth implements IAuth{
         private $auth;

@@ -1,0 +1,9 @@
+{
+    "appName":"Hydra",
+    "code":"ChangeThisCode",
+    "migration":0,
+    "expire":{
+        "migration":11,
+        "token":3600
+    }
+}

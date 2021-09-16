@@ -1,13 +1,21 @@
 <?php
+namespace viewSet;
 use persistence\IProvider;
-use concept\IAuth;
+use hydra\{IAuth,IConfig};
 
 class ViewSetFactory{
-    public static function getInstance($entity,IProvider $provider, IAuth $auth=null){
+    public static function getInstance(
+        IConfig $config,
+        IProvider $provider, 
+        IAuth $auth=null
+    ){
+        if ($config->getMigration())include_once("migration.php");
+
+        $entity = $config->getEntity();
 
         $viewSetFactory = "viewSet\\{$entity}ViewSet::getInstance";
 
-        return $viewSetFactory($provider,$auth);
+        return $viewSetFactory($config,$provider,$auth);
     }
 }
 ?>

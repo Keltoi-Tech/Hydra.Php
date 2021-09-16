@@ -1,5 +1,5 @@
 <?php
-namespace concept;
+namespace hydra;
 
 interface ILog{
     public function getAuthor():string;
@@ -12,7 +12,7 @@ interface IAuth{
 }
 
 interface ISerializable{
-    public function serialize();
+    public function serialize():array;
 }
 
 interface IEntity

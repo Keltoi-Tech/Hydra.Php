@@ -8,6 +8,7 @@ interface IConfig{
     public function getHash():string;
     public function getExpire();
     public function validateAppHash(string $app, string $code):string;
+    public function getMigration():bool;
 } 
 
 class Config implements IConfig
@@ -23,6 +24,10 @@ class Config implements IConfig
 
     public function getAppName():string{
         return $this->obj->appName;
+    }
+
+    public function getMigration():bool{
+        return $this->obj->migration==1;
     }
 
     public function getHash():string{

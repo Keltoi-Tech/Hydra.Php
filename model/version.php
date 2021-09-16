@@ -11,6 +11,14 @@ class Version extends Entity implements IEntity,ISerializable
         ]);
     }
 
+    public function add(){
+        $this->number+=0.01;
+    }
+
+    public function getNumber():float{
+        return $this->number;
+    }
+
     public function getEntityName():string{
         return "Version";
     }

@@ -1,17 +1,13 @@
 <?php 
 namespace viewSet;
 include_once("model/version.php");
-include_once("model/person.php");
 include_once("repository/version.php");
 include_once("repository/migration.php");
 use hydra\{IConfig,IAuth,ViewSet,Result};
 use repository\{VersionRepository,MigrationRepository};
 use persistence\{IProvider,Migration,Definition};
 use token\HS256Jwt;
-use model\{
-    Version,
-    Person
-};
+use model\{Version};
 
 class MigrationViewSet extends ViewSet
 {
@@ -33,8 +29,7 @@ class MigrationViewSet extends ViewSet
         $this->appName = $appName;
 
         $this->definitions=[
-            Definition::getInstance(new Version()),
-            Definition::getInstance(new Person())
+            Definition::getInstance(new Version())
         ];
     }
 
@@ -77,8 +72,17 @@ class MigrationViewSet extends ViewSet
         $op = $this->getPayload("sub");
 
         if ($issuer==$this->appName && $op=="migration"){
-            $result = $this->migrationRepository->migration($this->definitions);
-            return $result;
+            $version = new Version();
+            $version->setId(1);
+            $versionOrFail = $this->versionRepository->get($version);
+            if ($versionOrFail->assert(100)){
+                $result = $this->migrationRepository->migration($this->definitions);
+                if ($result->assert(201)){
+                    $version->add();
+                    $this->versionRepository->update($version);
+                }
+                return $result;
+            }else return $versionOrFail;
         }return new Result(403,["error"=>"Operation not allowed"]);        
     }
 

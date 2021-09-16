@@ -91,9 +91,18 @@ class ForeignKeySchema extends Schema
         parent::__construct("int unsigned",$nullable);
     }
 
+    public function getTableName(){
+        return trim($this->name,"id");
+    }
+
+    public function constraintName(){
+        return "fk_{.$this->name}_".ucfirst($this->getTableName());
+    }
+
     public function constraint():string{    
-        $table = trim($this->name,"id");
-        return "constraint foreign key({$this->name}) references {$table}(id)";
+        $table = $this->getTableName();
+        $constraint = $this->constraintName();
+        return "constraint {$constraint} foreign key({$this->name}) references {$table}(id)";
     }
 }
 ?>

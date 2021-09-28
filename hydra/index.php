@@ -1,4 +1,5 @@
 <?php
+    include_once("uuid.php");
     include_once("concept.php");
     include_once("entity.php");
     include_once("result.php");

@@ -17,13 +17,23 @@ abstract class Entity{
     }
     public function setId(int $id){
         $this->id = $id;
-    }       
-
-    public function getUid():string{
+    }
+    
+    public function getUuid():Uuid{
         return $this->uid;
     }
+    public function setUuid(Uuid $uuid){
+        $this->uid = $uuid;
+    }
+
+    public function getUid():string{
+        return $this->uid->getData();
+    }
     public function setUid(string $uid){
-        $this->uid = $uid;
+        $this->uid = new Uuid($uid);
+    }
+    public function newUid(){
+        $this->uid = Uuid::raiseFromNew();
     }
     
     public function creationDate():DateTime{

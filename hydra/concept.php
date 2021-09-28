@@ -1,6 +1,5 @@
 <?php
 namespace hydra;
-
 interface ILog{
     public function getAuthor():string;
     public function setAuthor(string $author);
@@ -21,6 +20,9 @@ interface IEntity
 	public function getId():int;
     public function getUid():string;
     public function setUid(string $uid);
+    public function newUid();
+    public function getUuid():Uuid;
+    public function setUuid(Uuid $uuid);
     public function getEntityName():string;
     public function getDB():array;
     public function getProperties():array;

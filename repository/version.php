@@ -1,7 +1,7 @@
 <?php
 namespace repository;
 use persistence\{IProvider,Crud};
-use hydra\{Result};
+use hydra\{Result,Uuid};
 use model\{Version};
 use PDO;
 use DateInterval;
@@ -17,9 +17,11 @@ class VersionRepository extends Crud
     }
 
     public function createFirst(){
+        $version = new Version();
+        $version->newUid();
         $pdo = $this->provider->getPdo();
         $statement = $pdo->prepare("insert into Version(uid) values (:uid)");
-        $statement->execute(["uid"=>getPavelGuid()]);
+        $statement->execute(["uid"=>$version->getUid()]);
 
         $statement=null;
         $pdo=null;

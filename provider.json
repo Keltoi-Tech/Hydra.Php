@@ -3,5 +3,6 @@
     "host":"sql132.main-hosting.eu:3306",
     "database":"u411213352_hydraapi",
     "login":"u411213352_keltoi",
-    "password":"PShPqyimP6i&"
+    "password":"PShPqyimP6i&",
+    "for":{"binary":"binary"}
 }

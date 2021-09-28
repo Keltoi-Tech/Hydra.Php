@@ -5,6 +5,7 @@ use PDO;
 //DATA PROVIDER
 interface IProvider{
     public function getPdo():PDO;
+    public function getFor();
 } 
 
 class Provider implements IProvider
@@ -21,6 +22,10 @@ class Provider implements IProvider
         $dsn = "{$this->obj->dbms}:host={$this->obj->host};dbname={$this->obj->database};charset=utf8";
         $result =  new PDO($dsn,$this->obj->login,$this->obj->password);
         return $result;
+    }
+
+    public function getFor(){
+        return $obj->for;
     }
 
     public static function getInstance($filePath):Provider

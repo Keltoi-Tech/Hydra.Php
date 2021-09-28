@@ -12,7 +12,7 @@ class MigrationRepository extends Crud
     private $config;
     private function __construct(IProvider $provider,IConfig $config){
         parent::__construct($provider);
-        $this->migration = new Migration($provider);
+        $this->migration = new Migration($provider,$config);
         $this->config = $config;
     }
 
@@ -88,11 +88,6 @@ class MigrationRepository extends Crud
     }
 
     public function migration(array $definitions):Result{
-        /**
-         * TODO.: PARA CADA DEFINIÇÃO VERIFICAR SE HÁ DIVERGÊNCIAS NO BANCO
-         * QUANDO HÁ UMA VERSÃO NO BANCO QUE NÃO HÁ NA DEFINIÇÃO, REMOVE A 
-         * TABELA/CAMPO NO BANCO. AO TERMINO DE TUDO, ATUALIZA A VERSÃO 
-         **/
         $messages=[];
         foreach($definitions as $definition){
             $result = $this->migration->schemaAnalysis($definition);

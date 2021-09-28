@@ -5,7 +5,8 @@ use hydra\{
     IEntity,
     IOnthos,
     IObject,
-    Result
+    Result,
+    Uuid
 };
 use PDO;
 
@@ -109,7 +110,7 @@ class Crud extends EntityCrud implements ICrud
 	
 	public function insert(IEntity &$entity):Result
 	{
-        $entity->setUid(getPavelGuid());
+        $entity->setUid(Uuid::raiseFromNew());
         $name = $entity->getEntityName();
         $fields = $this->getPropertiesByComma($entity);
         $parameters = $this->getParametersByComma($entity);
@@ -208,7 +209,9 @@ class Crud extends EntityCrud implements ICrud
         $pdo = $this->provider->getPdo();
         $statement = $pdo->prepare($query);
         $statement->setFetchMode(PDO::FETCH_CLASS,"\\model\\".$name);
-        $statement->execute(["uid"=>$entity->getUid()]);
+        $statement->execute([
+            "uid"=>$entity->getUid()->getData()
+        ]);
         $o = $statement->fetch();
         if ($o===false) $result = Result::getInstance(404,["error"=>"{$name} not found"]);
         else{

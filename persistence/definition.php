@@ -67,7 +67,7 @@ class Definition implements IDefinition{
         $constraints=[];
         
         array_push($properties,"id int unsigned not null primary key auto_increment");
-        array_push($properties,"uid char(36) not null collate latin1_swedish_ci unique");
+        array_push($properties,"uid binary(16) not null unique");
         foreach($this->fields as $field){
             array_push($properties,$field->build());     
             if (get_class($field)=="ForeignKey")

@@ -1,8 +1,7 @@
 {
-    "dbms":"mysql",
-    "host":"sql132.main-hosting.eu:3306",
-    "database":"u411213352_hydraapi",
-    "login":"u411213352_keltoi",
-    "password":"PShPqyimP6i&",
-    "for":{"binary":"binary"}
+    "dbms":"",
+    "host":"",
+    "database":"",
+    "login":"",
+    "password":""
 }

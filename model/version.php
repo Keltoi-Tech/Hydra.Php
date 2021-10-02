@@ -1,6 +1,6 @@
 <?php
 namespace model;
-use hydra\{IEntity,ISerializable,Entity,Result,Schema};
+use hydra\{IEntity,ISerializable,Entity,Result,Schema,Uuid};
 class Version extends Entity implements IEntity,ISerializable
 {
     private $number;
@@ -15,6 +15,11 @@ class Version extends Entity implements IEntity,ISerializable
         $this->number+=0.01;
     }
 
+    public function newUid(){
+        parent::newUid();
+        $this->number=1.0;
+    }
+
     public function getNumber():float{
         return $this->number;
     }
@@ -24,8 +29,9 @@ class Version extends Entity implements IEntity,ISerializable
     }
 
     public function serialize():array{
+        $uuid = new Uuid($this->getUid());
         return [
-            "uid"=>$this->getUid(),
+            "uid"=>$uuid->toString(),
             "number"=>$this->number
         ];
     }

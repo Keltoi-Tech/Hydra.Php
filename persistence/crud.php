@@ -158,6 +158,7 @@ class Crud extends EntityCrud implements ICrud
         $pdo->beginTransaction();
         $statement = $pdo->prepare($query);
         $result=null;
+        
         try{
             $result = $statement->execute($bind)?
                 Result::getInstance(200,["ok"=>"Command executed successfully"]):
@@ -210,7 +211,7 @@ class Crud extends EntityCrud implements ICrud
         $statement = $pdo->prepare($query);
         $statement->setFetchMode(PDO::FETCH_CLASS,"\\model\\".$name);
         $statement->execute([
-            "uid"=>$entity->getUid()->getData()
+            "uid"=>$entity->getUid()
         ]);
         $o = $statement->fetch();
         if ($o===false) $result = Result::getInstance(404,["error"=>"{$name} not found"]);

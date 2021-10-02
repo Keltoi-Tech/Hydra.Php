@@ -15,16 +15,5 @@ class VersionRepository extends Crud
     public static function getInstance(IProvider $provider){
         return new VersionRepository($provider);
     }
-
-    public function createFirst(){
-        $version = new Version();
-        $version->newUid();
-        $pdo = $this->provider->getPdo();
-        $statement = $pdo->prepare("insert into Version(uid) values (:uid)");
-        $statement->execute(["uid"=>$version->getUid()]);
-
-        $statement=null;
-        $pdo=null;
-    }
 }
 ?>

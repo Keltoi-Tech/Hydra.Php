@@ -18,22 +18,15 @@ abstract class Entity{
     public function setId(int $id){
         $this->id = $id;
     }
-    
-    public function getUuid():Uuid{
-        return $this->uid;
-    }
-    public function setUuid(Uuid $uuid){
-        $this->uid = $uuid;
-    }
 
     public function getUid():string{
-        return $this->uid->getData();
+        return $this->uid;
     }
-    public function setUid(string $uid){
-        $this->uid = new Uuid($uid);
+    public function setUid(Uuid $uid){
+        $this->uid = $uid->getData();
     }
     public function newUid(){
-        $this->uid = Uuid::raiseFromNew();
+        $this->uid = Uuid::raiseFromNew()->getData();
     }
     
     public function creationDate():DateTime{

@@ -3,7 +3,7 @@ namespace viewSet;
 include_once("model/version.php");
 include_once("repository/version.php");
 include_once("repository/migration.php");
-use hydra\{IConfig,IAuth,ViewSet,Result};
+use hydra\{IConfig,IAuth,ViewSet,Result,Uuid};
 use repository\{VersionRepository,MigrationRepository};
 use persistence\{IProvider,Migration,Definition};
 use token\HS256Jwt;
@@ -60,9 +60,14 @@ class MigrationViewSet extends ViewSet
     function postTerraform():Result{
         $issuer = $this->getPayload("iss");
         $op = $this->getPayload("sub");
+
         if ($issuer==$this->appName && $op=="terraform"){
-            $result=  $this->migrationRepository->terraform($this->definitions);
-            $this->versionRepository->createFirst();
+            $result= $this->migrationRepository->terraform($this->definitions);
+            if ($result->assert(201)){
+                $version = new Version();
+                $version->newUid();
+                $this->versionRepository->insert($version);
+            }
             return $result;
         }else return new Result(403,["error"=>"Operation not allowed"]);        
     }

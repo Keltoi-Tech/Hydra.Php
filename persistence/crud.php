@@ -89,7 +89,7 @@ interface ICrud{
     public function delete(IEntity $entity):Result;
     public function associate(IEntity $entity,IEntity $link):Result;
     public function deassociate(IEntity $entity,IEntity $link):Result;
-    public function getAssociate(IEntity $entity, IEntity $link):Result;
+    public function getAssociate(IEntity $entity, IEntity $link, bool $uidOnly):Result;
     public function nameLike(IOnthos $onthos):Result;
     public function nameIs(IOnthos &$onthos):Result;
     public function getOnthosByUid(IOnthos &$onthos):Result;
@@ -424,7 +424,7 @@ class Crud extends EntityCrud implements ICrud
         return $result;
     }
 
-    public function getAssociate(IEntity $link,$uidOnly=0):Result
+    public function getAssociate(IEntity $entity,IEntity $link,bool $uidOnly=false):Result
     {
         $nameEntity=$entity->getEntityName();
         $nameLink =$entity->getEntityName();
@@ -432,9 +432,9 @@ class Crud extends EntityCrud implements ICrud
         $idLink = "id{$nameLink}";
         $f = $uidOnly?"uid":"*";
 
-        $query="Select {$nameEntity}.{$f} From {$nameEntity} E";
-        $query+=" Inner Join {$nameLink}{$nameEntity} L On E.id=L.{$idEntity}";
-        $query+=" Where L.{$idLink}=:{$idLink}";
+        $query="Select {$nameEntity}.{$f} From {$nameEntity} E"
+        ." Inner Join {$nameLink}{$nameEntity} L On E.id=L.{$idEntity}"
+        ." Where L.{$idLink}=:{$idLink}";
 
         $pdo = $this->provider->getPdo();
         $statement = $pdo->prepare($query);

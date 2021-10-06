@@ -3,11 +3,8 @@ namespace persistence;
 use hydra\IEntity;
 
 interface IDefinition{
-    public function alterAddConstraint(string $property):string;
-    public function alterAddColumn(string $property):string;
-    public function alterDropColumn(string $property):string;
-    public function alterModifyColumn(string $property):string;
     public function create():string;
+    public function getTable():string;
 }
 
 class Definition implements IDefinition{
@@ -27,7 +24,7 @@ class Definition implements IDefinition{
         $this->models = array_keys($this->fields);
     }
 
-    public function getTable(){
+    public function getTable():string{
         return $this->table;
     }
 

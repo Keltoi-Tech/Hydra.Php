@@ -72,7 +72,7 @@ class MigrationRepository extends Crud
             return new Result(200,["token"=>$token]);
 
         }else return new Result(401,["error"=>"Unauthenticated"]);           
-    }    
+    }
 
     public function terraform(array $definitions):Result{
         $messages = [];

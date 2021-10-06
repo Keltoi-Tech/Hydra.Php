@@ -21,35 +21,40 @@
         public function schemaAnalysis(IDefinition $definition):Result{
             $table = $definition->getTable();
             if ($this->tableExists($table)){
-                $pdo=$this->provider->getPdo();
-                $query = "select "
-                        ."column_name "
-                        ."from information_schema.Columns "
-                        ."where table_name=:table "
-                        ."and column_name not in "
-                        ."('id','uid','creationDate','updateDate')";
+                if ($definition instanceof Joining){
+                    return new Result(100,["ok"=>"done"]);
+                }else{
+                    $pdo=$this->provider->getPdo();
+                    $query = "select "
+                            ."column_name "
+                            ."from information_schema.Columns "
+                            ."where table_name=:table "
+                            ."and column_name not in "
+                            ."('id','uid','creationDate','updateDate')";
+    
+                    $statement = $pdo->prepare($query);
+                    $statement->execute([
+                        "table"=>$table
+                    ]);
+    
+                    $schema = array_column(
+                        $statement->fetchAll(PDO::FETCH_ASSOC),
+                        "column_name"
+                    );
+                    
+                    $commands = $definition->matchDb($schema);
+                    $statement->closeCursor();
+                    $statement=null;
+                    $pdo=null;
+    
+                    if (!empty($commands["addColumns"]))$this->executeBatch($commands["addColumns"]);
+                    if (!empty($commands["addConstraint"]))$this->executeBatch($commands["addConstraint"]);
+                    if (!empty($commands["modifyColumns"]))$this->executeBatch($commands["modifyColumns"]);
+                    if (!empty($commands["dropColumns"]))$this->executeBatch($commands["dropColumns"]);
+    
+                    return new Result(100,["ok"=>"done"]);
+                }
 
-                $statement = $pdo->prepare($query);
-                $statement->execute([
-                    "table"=>$table
-                ]);
-
-                $schema = array_column(
-                    $statement->fetchAll(PDO::FETCH_ASSOC),
-                    "column_name"
-                );
-                
-                $commands = $definition->matchDb($schema);
-                $statement->closeCursor();
-                $statement=null;
-                $pdo=null;
-
-                if (!empty($commands["addColumns"]))$this->executeBatch($commands["addColumns"]);
-                if (!empty($commands["addConstraint"]))$this->executeBatch($commands["addConstraint"]);
-                if (!empty($commands["modifyColumns"]))$this->executeBatch($commands["modifyColumns"]);
-                if (!empty($commands["dropColumns"]))$this->executeBatch($commands["dropColumns"]);
-
-                return new Result(100,["ok"=>"done"]);
             }else return $this->create($definition);
         }
 

@@ -21,7 +21,7 @@
             $table = $definition->getTable();
             if ($this->tableExists($table)){
                 if ($definition instanceof Joining){
-                    return new Result(100,["ok"=>"done"]);
+                    return new Result(100,["ok"=>"Joining table {$table} sucessfull updated"]);
                 }else{
                     $pdo=$this->provider->getPdo();
                     $query = "select "

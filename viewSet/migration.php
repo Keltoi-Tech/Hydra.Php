@@ -1,13 +1,19 @@
 <?php 
 namespace viewSet;
-include_once("model/version.php");
 include_once("repository/version.php");
 include_once("repository/migration.php");
-use hydra\{IConfig,IAuth,ViewSet,Result,Uuid};
+use hydra\{IConfig,IAuth,ViewSet,Result};
 use repository\{VersionRepository,MigrationRepository};
-use persistence\{IProvider,Migration,Definition};
+use persistence\{IProvider,Definition,Joining};
 use token\HS256Jwt;
-use model\{Version};
+use model\{
+    Version,
+    User,
+    Role,
+    Profile,
+    Feature,
+    ProfileRoleFeature
+};
 
 class MigrationViewSet extends ViewSet
 {
@@ -40,21 +46,27 @@ class MigrationViewSet extends ViewSet
     }
 
     public function postAuthTerraform($entry):Result{
-        return 
+        return (
             isset($entry["app"])?
+            (
                 isset($entry["password"])?
                     $this->migrationRepository->authTerraform($entry["app"],$entry["password"]):
-                    new Result(400,["error"=>"No password provided"]):
-                new Result(400,["error"=>"No app provided"]);
+                    new Result(400,["error"=>"No password provided"])
+            ):
+            new Result(400,["error"=>"No app provided"])
+        );
     }
 
     public function postAuthMigration($entry):Result{
-        return 
+        return (
             isset($entry["app"])?
+            (
                 isset($entry["password"])?
                     $this->migrationRepository->authMigration($entry["app"],$entry["password"]):
-                    new Result(400,["error"=>"No password provided"]):
-                new Result(400,["error"=>"No app provided"]);
+                    new Result(400,["error"=>"No password provided"])
+            ):
+            new Result(400,["error"=>"No app provided"])
+        );
     }    
 
     function postTerraform():Result{

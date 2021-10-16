@@ -17,14 +17,19 @@ use api\Rest;
 
 
 function main(){
+    $providerFile = "homolog_provider.json";
+    $configFile="config.json";
     $request = Request::getInstance([
         "Access-Control-Allow-Origin: *",
         "Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS",
         "Access-Control-Allow-Headers: Authorization, Content-Type,Accept, Origin"
     ]);
+
+    chmod($providerFile,4);
+    chmod($configFile,4);
     
-    $provider = Provider::getInstance("provider.json");
-    $config = Config::getInstance("config.json",$request->getEntity());
+    $provider = Provider::getInstance($providerFile);
+    $config = Config::getInstance($configFile,$request->getEntity());
     $auth = $request->getAuth();
     
     $viewSet = ViewSetFactory::getInstance($config,$provider,$auth);

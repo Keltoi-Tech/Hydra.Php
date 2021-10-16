@@ -1,10 +1,7 @@
 <?php
 namespace repository;
 use persistence\{IProvider,Crud};
-use hydra\{Result,Uuid};
-use model\{Version};
-use PDO;
-use DateInterval;
+
 
 class VersionRepository extends Crud
 {

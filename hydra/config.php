@@ -1,33 +1,37 @@
 <?php
 namespace hydra;
-use PDO;
 
 interface IConfig{
     public function getEntity():string;
     public function getAppName():string;
     public function getHash():string;
-    public function getExpire();
     public function validateAppHash(string $app, string $code):string;
-    public function getMigration():bool;
+    public function getMigration():object;
+    public function getSubConfig(string $name):object;
 } 
 
 class Config implements IConfig
 {
-    private $obj;
-	private $entity; 
+    protected $obj;
+	protected $entity; 
 
-	function __construct(string $filePath,string $entity)
+	protected function __construct(string $filePath,string $entity)
 	{
         $this->entity = $entity;
 		$this->obj = json_decode(file_get_contents($filePath));
 	}
 
+    public function getSubConfig(string $name): object
+    {
+        return $this->obj->{$name};
+    }
+
     public function getAppName():string{
         return $this->obj->appName;
     }
 
-    public function getMigration():bool{
-        return $this->obj->migration==1;
+    public function getMigration():object{
+        return $this->obj->migration;
     }
 
     public function getHash():string{
@@ -38,10 +42,6 @@ class Config implements IConfig
         $actualApp = $this->obj->appName;
         $actualCode = $this->obj->code;
         return hash("sha256","{$actualApp}{$actualCode}") === hash("sha256","{$app}{$code}");
-    }
-
-    public function getExpire(){
-        return $this->obj->expire;
     }
 
     public function getEntity():string{

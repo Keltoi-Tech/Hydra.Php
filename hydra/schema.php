@@ -34,10 +34,15 @@ class Schema
     public function build():string{
         $null = $this->nullable?"null":"not null";
         $uq = $this->unique?"unique":"";
-        $default = $this->nullable?"":
-                        isset($this->default)?
-                            "default {$this->default}":
-                            "";
+        $default = (
+            $this->nullable?
+            "":
+            (
+                isset($this->default)?
+                    "default {$this->default}":
+                    ""
+            )
+        );
         $comment=isset($this->comment)?
                         "comment '{$this->comment}'":
                         "";
@@ -70,10 +75,15 @@ class TextSchema extends Schema
     public function build():string{
         $null = $this->nullable?"null":"not null";
         $uq = $this->unique?"unique":"";
-        $default = $this->nullable?"":
-                        isset($this->default)?
-                            "default {$this->default}":
-                            "";
+        $default = (
+            $this->nullable?
+                "":
+                (
+                    isset($this->default)?
+                        "default {$this->default}":
+                        ""
+                )
+        );
         $comment=isset($this->comment)?
                     "comment '{$this->comment}'":"";
 
@@ -86,7 +96,7 @@ class TextSchema extends Schema
 
 class ForeignKeySchema extends Schema
 {
-    public function __construct(bool $nullable)
+    public function __construct(bool $nullable=true)
     {
         parent::__construct("int unsigned",$nullable);
     }
@@ -96,7 +106,7 @@ class ForeignKeySchema extends Schema
     }
 
     public function constraintName(){
-        return "fk_{.$this->name}_".ucfirst($this->getTableName());
+        return "fk_{$this->name}_".ucfirst($this->getTableName());
     }
 
     public function constraint():string{    

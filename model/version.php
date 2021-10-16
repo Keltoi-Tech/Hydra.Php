@@ -1,6 +1,12 @@
 <?php
 namespace model;
-use hydra\{IEntity,ISerializable,Entity,Result,Schema,Uuid};
+use hydra\{
+    IEntity,
+    ISerializable,
+    Entity,
+    Schema,
+    Uuid
+};
 class Version extends Entity implements IEntity,ISerializable
 {
     private $number;

@@ -2,7 +2,6 @@
 namespace viewSet;
 use persistence\IProvider;
 use hydra\{IAuth,IConfig};
-
 class ViewSetFactory{
     public static function getInstance(
         IConfig $config,

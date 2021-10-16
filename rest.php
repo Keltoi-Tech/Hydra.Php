@@ -45,12 +45,15 @@ class Rest
     function put(){
         $guid = $this->request->getOp()[0];
         $data = $this->request->getStream();
-        return
+        return (
             method_exists($this->viewSet,'update')?
-                (isset($guid))?
-                    $this->viewSet->update($guid,$data):
-                    $this->viewSet->update($data):
-                new Result(404,["error"=>"Route not found"]);
+                (
+                    isset($guid)?
+                        $this->viewSet->update($guid,$data):
+                        $this->viewSet->update($data)
+                ):
+                new Result(404,["error"=>"Route not found"])
+        );
     }
 
     function patch(){

@@ -25,7 +25,7 @@ class Provider implements IProvider
     }
 
     public function getFor(){
-        return $obj->for;
+        return $this->obj->for;
     }
 
     public static function getInstance($filePath):Provider

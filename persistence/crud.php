@@ -9,7 +9,7 @@ use hydra\{
     Uuid
 };
 use PDO;
-
+use Exception;
 //ABSTRACTION
 abstract class EntityCrud
 {

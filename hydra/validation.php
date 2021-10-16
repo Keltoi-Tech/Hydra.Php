@@ -1,41 +1,35 @@
 <?php
-use hydra\{Result,IViewModel};
+namespace hydra;
+use hydra\{Result,Uuid};
 abstract class Validation{
     protected $entry;
-    protected $viewModel;
 
-    protected function __construct(array $entry=null, IViewModel $viewModel){
+    protected function __construct(array $entry){
         $this->entry = $entry;
-        $this->viewModel= $viewModel;
     }
 
-    protected function validate_uid(){
-        return (strlen($this->entry["uid"])===36)?
-                    new Result(100,null):
-                    new Result(400,["error"=>"Invalid guid format"]);
+    public function validateUid():Result{
+        return (
+            isset($this->entry["uid"])?
+                (
+                    strlen($this->entry["uid"])===36?
+                        new Result(100,null):
+                        new Result(400,["error"=>"Invalid uuid format for uid"])
+                ):
+                new Result(400,["error"=>"No uid provided"])
+        );
     }
 
-    protected function validate_id(){
-        return ($this->entry["id"]>0)?
-            new Result(100,null):
-            new Result(400,["error"=>"Invalid id format"]);
-    }
-
-    public function run(...$fields):Result
-    {
-        $var_model=[];
-        foreach($fields as $field){
-            $method= "validate_{$field}";
-            $assert100 = $this->$method();
-            if (!$assert100->assert(100))return $assert100;
-            else $var_model[$field] = $this->entry[$field];
-        }
-
-        return new Result(100,[
-            "model"=>isset($fields)?
-                $this->viewModel->toModel(false,$var_model):
-                $this->viewModel->toModel(true,null)
-        ]);
+    public function validateId():Result{
+        return (
+            isset($this->entry["id"])?
+                (
+                    $this->entry["id"]>0?
+                        new Result(100,null):
+                        new Result(400,["error"=>"Invalid id format"])
+                ):
+                new Result(400,["error"=>"No id provided"])
+        );
     }
 }
 ?>

@@ -1,5 +1,6 @@
 <?php
 namespace hydra;
+use DateTime;
 //ENTITY BASE CLASS
 abstract class Entity{
     protected $id;

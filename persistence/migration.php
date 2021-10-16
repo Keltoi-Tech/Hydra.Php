@@ -1,9 +1,8 @@
 <?php
     namespace persistence;
     use hydra\Result;
-    use DateInterval;
     use PDO;
-
+    use PDOException;
     class Migration{
         private $provider;
         public function __construct(IProvider $provider){
@@ -42,7 +41,7 @@
                         "column_name"
                     );
                     
-                    $commands = $definition->matchDb($schema);
+                    $commands = $definition->matchDatabase($schema);
                     $statement->closeCursor();
                     $statement=null;
                     $pdo=null;
@@ -52,9 +51,8 @@
                     if (!empty($commands["modifyColumns"]))$this->executeBatch($commands["modifyColumns"]);
                     if (!empty($commands["dropColumns"]))$this->executeBatch($commands["dropColumns"]);
     
-                    return new Result(100,["ok"=>"done"]);
+                    return new Result(100,["ok"=>"Table {$table} sucessfull updated"]);
                 }
-
             }else return $this->create($definition);
         }
 

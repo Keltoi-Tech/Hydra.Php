@@ -1,9 +1,8 @@
 <?php
 namespace repository;
-use persistence\{IProvider,IDefinition,Crud,Migration};
+use persistence\{IProvider,Crud,Migration};
 use hydra\{Result,IConfig};
 use token\{HS256Jwt,ObjectToken};
-use PDO;
 use DateInterval;
 
 class MigrationRepository extends Crud
@@ -22,7 +21,7 @@ class MigrationRepository extends Crud
 
     public function authTerraform(string $app, string $password):Result{
         if ($this->config->validateAppHash($app,$password)){
-            $secondsToExpire = $this->config->getExpire()->migration;
+            $secondsToExpire = $this->config->getMigration()->expire;
             $secret = $this->config->getHash();
             $expire = date_create();
             $expire->add(new DateInterval("PT{$secondsToExpire}S"));
@@ -49,7 +48,7 @@ class MigrationRepository extends Crud
 
     public function authMigration(string $app, string $password):Result{
         if ($this->config->validateAppHash($app,$password)){
-            $secondsToExpire = $this->config->getExpire()->migration;
+            $secondsToExpire = $this->config->getMigration()->expire;
             $secret = $this->config->getHash();
             $expire = date_create();
             $expire->add(new DateInterval("PT{$secondsToExpire}S"));
@@ -72,7 +71,7 @@ class MigrationRepository extends Crud
             return new Result(200,["token"=>$token]);
 
         }else return new Result(401,["error"=>"Unauthenticated"]);           
-    }
+    }    
 
     public function terraform(array $definitions):Result{
         $messages = [];

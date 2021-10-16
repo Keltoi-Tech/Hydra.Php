@@ -83,16 +83,19 @@ abstract class Jwt{
         $headerValidation = $this->validate_header($header);
         $payloadValidation = $this->validate_payload($payload);
 
-        return 
-            ($headerValidation->assert(100))?
-                ($payloadValidation->assert(100))?
-                    ($this->get_hash($header,$payload)===$signature)?
-                        new Result(100,$payload->getObject()):
-                        new Result(401,["error"=>"Unauthorized"])
-                    :
-                    $payloadValidation
-                :
-                $headerValidation;
+        return (
+            $headerValidation->assert(100)?
+                (
+                    $payloadValidation->assert(100)?
+                        (
+                            $this->get_hash($header,$payload)===$signature?
+                                new Result(100,$payload->getObject()):
+                                new Result(401,["error"=>"Unauthorized"])
+                        ):
+                        $payloadValidation
+                ):
+                $headerValidation
+        );
     }
 }
 

@@ -1,10 +1,13 @@
 <?php
 namespace persistence;
-use hydra\IEntity;
-
+use hydra\{
+    IEntity,
+    ForeignKeySchema
+};
 interface IDefinition{
     public function create():string;
     public function getTable():string;
+    public function matchDatabase(array $db):array;
 }
 
 class Definition implements IDefinition{
@@ -47,7 +50,7 @@ class Definition implements IDefinition{
         return "alter table {$this->table} drop column {$name}";
     }
 
-    public function matchDb(array $db):array{
+    public function matchDatabase(array $db):array{
         $toAdd = array_diff($this->models,$db);
         $toModify = array_intersect($this->models,$db);
         $toDrop = array_diff($db,$this->models);    
@@ -66,12 +69,13 @@ class Definition implements IDefinition{
         array_push($properties,"id int unsigned not null primary key auto_increment");
         array_push($properties,"uid binary(16) not null unique");
         foreach($this->fields as $field){
-            array_push($properties,$field->build());     
-            if (get_class($field)=="ForeignKey")
+            array_push($properties,$field->build());
+            if (get_class($field)=="hydra\ForeignKeySchema")
                 array_push($constraints,$field->constraint());
         }
         array_push($properties,"creationDate datetime not null default current_timestamp");
         array_push($properties,"updateDate datetime null on update current_timestamp");
+        array_push($properties,"active bit not null default 1");
         
         $p = implode(",",$properties);
         $c = empty($constraints)?"":"," . implode(",",$constraints);

@@ -11,7 +11,7 @@ class ViewSetFactory{
         if ($config->getMigration())include_once("migration.php");
 
         $entity = $config->getEntity();
-
+        
         $viewSetFactory = "viewSet\\{$entity}ViewSet::getInstance";
 
         return $viewSetFactory($config,$provider,$auth);

@@ -1,6 +1,6 @@
 <?php
 namespace repository;
-use persistence\{IProvider,Crud,Migration};
+use persistence\{IProvider,IDefinition,Crud,Migration};
 use hydra\{Result,IConfig};
 use token\{HS256Jwt,ObjectToken};
 use DateInterval;

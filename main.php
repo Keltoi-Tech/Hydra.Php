@@ -17,7 +17,7 @@ use api\Rest;
 
 
 function main(){
-    $providerFile = "homolog_provider.json";
+    $providerFile = "provider.json";
     $configFile="config.json";
     $request = Request::getInstance([
         "Access-Control-Allow-Origin: *",

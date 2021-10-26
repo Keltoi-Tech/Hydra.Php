@@ -5,7 +5,7 @@ interface IConfig{
     public function getEntity():string;
     public function getAppName():string;
     public function getHash():string;
-    public function validateAppHash(string $app, string $code):string;
+    public function validateAppHash(string $app, string $code):bool;
     public function getMigration():object;
     public function getSubConfig(string $name):object;
 } 
@@ -38,7 +38,7 @@ class Config implements IConfig
         return hash("sha256","{$this->obj->appName}{$this->obj->code}");
     }
 
-    public function validateAppHash(string $app, string $code):string{
+    public function validateAppHash(string $app, string $code):bool{
         $actualApp = $this->obj->appName;
         $actualCode = $this->obj->code;
         return hash("sha256","{$actualApp}{$actualCode}") === hash("sha256","{$app}{$code}");

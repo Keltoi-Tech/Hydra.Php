@@ -4,8 +4,7 @@ use hydra\{
     IEntity,
     ISerializable,
     Entity,
-    Schema,
-    Uuid
+    Schema
 };
 class Version extends Entity implements IEntity,ISerializable
 {
@@ -35,9 +34,8 @@ class Version extends Entity implements IEntity,ISerializable
     }
 
     public function serialize():array{
-        $uuid = new Uuid($this->getUid());
         return [
-            "uid"=>$uuid->toString(),
+            "uid"=>$this->getStringUid(),
             "number"=>$this->number
         ];
     }

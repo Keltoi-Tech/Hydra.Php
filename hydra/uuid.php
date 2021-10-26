@@ -20,9 +20,13 @@ class Uuid
         return new Uuid(hex2bin(str_replace("-","",$string)));
     }
 
+
     public function getData():string{
         return $this->data;
     }
+    public function setData(string $data){
+        $this->data = $data;
+    }    
 
     public function toString():string{
         return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($this->data), 4));

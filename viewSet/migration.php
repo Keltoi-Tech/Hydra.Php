@@ -2,18 +2,22 @@
 namespace viewSet;
 include_once("repository/version.php");
 include_once("repository/migration.php");
-use hydra\{IConfig,IAuth,ViewSet,Result};
-use repository\{VersionRepository,MigrationRepository};
-use persistence\{IProvider,Definition,Joining};
-use token\HS256Jwt;
-use model\{
-    Version,
-    User,
-    Role,
-    Profile,
-    Feature,
-    ProfileRoleFeature
+use hydra\{
+    IConfig,
+    IAuth,
+    ViewSet,
+    Result
 };
+use repository\{
+    VersionRepository,
+    MigrationRepository
+};
+use persistence\{
+    IProvider,
+    Definition
+};
+use token\HS256Jwt;
+use model\Version;
 
 class MigrationViewSet extends ViewSet
 {
@@ -22,7 +26,7 @@ class MigrationViewSet extends ViewSet
     private $appName;
     private $definitions;
 
-    private function __construct(
+    protected function __construct(
         Result              $valid,
         VersionRepository   $versionRepository,
         MigrationRepository $migrationRepository,
@@ -69,7 +73,7 @@ class MigrationViewSet extends ViewSet
         );
     }    
 
-    function postTerraform():Result{
+    public function postTerraform():Result{
         $issuer = $this->getPayload("iss");
         $op = $this->getPayload("sub");
 
@@ -84,7 +88,7 @@ class MigrationViewSet extends ViewSet
         }else return new Result(403,["error"=>"Operation not allowed"]);        
     }
 
-    function postMigration():Result{
+    public function postMigration():Result{
         $issuer = $this->getPayload("iss");
         $op = $this->getPayload("sub");
 

@@ -21,13 +21,19 @@ abstract class Entity{
     }
 
     public function getUid():string{
-        return $this->uid;
+        return $this->uid->getData();
     }
     public function setUid(Uuid $uid){
-        $this->uid = $uid->getData();
+        $this->uid = $uid;
     }
     public function newUid(){
-        $this->uid = Uuid::raiseFromNew()->getData();
+        $this->uid = Uuid::raiseFromNew();
+    }
+    public function getStringUid():string{
+        return $this->uid->toString();
+    }
+    public function getUuid(){
+        return $this->uid;
     }
     
     public function creationDate():DateTime{

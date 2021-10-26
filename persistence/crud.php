@@ -5,8 +5,7 @@ use hydra\{
     IEntity,
     IOnthos,
     IObject,
-    Result,
-    Uuid
+    Result
 };
 use PDO;
 use Exception;
@@ -87,9 +86,10 @@ interface ICrud{
     public function disable(IEntity $entity):Result;
     public function enable(IEntity $entity):Result;
     public function delete(IEntity $entity):Result;
-    public function associate(IEntity $entity,IEntity $link):Result;
-    public function deassociate(IEntity $entity,IEntity $link):Result;
-    public function getAssociate(IEntity $entity, IEntity $link, bool $uidOnly):Result;
+    public function join(IEntity $entity,IEntity $link):Result;
+    public function unjoin(IEntity $entity,IEntity $link):Result;
+    public function getJoiningEntity(IEntity $entity, IEntity $link, bool $uidOnly):Result;
+    public function getJoiningLink(IEntity $entity, IEntity $link, bool $uidOnly):Result;
     public function nameLike(IOnthos $onthos):Result;
     public function nameIs(IOnthos &$onthos):Result;
     public function getOnthosByUid(IOnthos &$onthos):Result;
@@ -110,7 +110,7 @@ class Crud extends EntityCrud implements ICrud
 	
 	public function insert(IEntity &$entity):Result
 	{
-        $entity->setUid(Uuid::raiseFromNew());
+        $entity->newUid();
         $name = $entity->getEntityName();
         $fields = $this->getPropertiesByComma($entity);
         $parameters = $this->getParametersByComma($entity);
@@ -373,7 +373,7 @@ class Crud extends EntityCrud implements ICrud
         return $result;
 	}
 
-    public function associate(IEntity $entity,IEntity $link):Result
+    public function join(IEntity $entity,IEntity $link):Result
     {
         $nameEntity=$entity->getEntityName();
         $nameLink=$link->getEntityName();
@@ -389,7 +389,7 @@ class Crud extends EntityCrud implements ICrud
         try
         {
             $result = $statement->execute(array($idEntity=>$entityId,$idLink=>$linkId))?
-                            Result::getInstance(200,["ok"=>self::REMOVE_OK_MESSAGE]):
+                            Result::getInstance(200,["ok"=>"Joining done"]):
                             Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
             $pdo->commit();
         }
@@ -406,7 +406,7 @@ class Crud extends EntityCrud implements ICrud
         return $result;
     }
 
-    public function deassociate(IEntity $entity, IEntity $link):Result
+    public function unjoin(IEntity $entity, IEntity $link): Result
     {
         $nameEntity=$entity->getEntityName();
         $nameLink = $link->getEntityName();
@@ -424,7 +424,7 @@ class Crud extends EntityCrud implements ICrud
         return $result;
     }
 
-    public function getAssociate(IEntity $entity,IEntity $link,bool $uidOnly=false):Result
+    public function getJoiningEntity(IEntity $entity,IEntity $link,bool $uidOnly=false):Result
     {
         $nameEntity=$entity->getEntityName();
         $nameLink =$entity->getEntityName();
@@ -438,10 +438,7 @@ class Crud extends EntityCrud implements ICrud
 
         $pdo = $this->provider->getPdo();
         $statement = $pdo->prepare($query);
-        if ($uidOnly)
-            $statement->setFetchMode(PDO::FETCH_ASSOC);    
-        else
-            $statement->setFetchMode(PDO::FETCH_CLASS,"\\model\\".$nameEntity);
+        $statement->setFetchMode(PDO::FETCH_ASSOC);
         $result = $statement->execute(array($idLink=>$link->getId()))?
                         Result::getInstance(200,$statement->fetchAll()):
                         Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
@@ -450,6 +447,30 @@ class Crud extends EntityCrud implements ICrud
         $statement=null;
         return $result;
     }
+
+    public function getJoiningLink(IEntity $entity,IEntity $link,bool $uidOnly=false):Result
+    {
+        $nameEntity=$entity->getEntityName();
+        $nameLink =$entity->getEntityName();
+        $idEntity = "id{$nameEntity}";
+        $idLink = "id{$nameLink}";
+        $f = $uidOnly?"uid":"*";
+
+        $query="Select {$nameLink}.{$f} From {$nameLink} L"
+        ." Inner Join {$nameLink}{$nameEntity} E On L.id=E.{$idLink}"
+        ." Where L.{$idEntity}=:{$idEntity}";
+
+        $pdo = $this->provider->getPdo();
+        $statement = $pdo->prepare($query);
+        $statement->setFetchMode(PDO::FETCH_ASSOC);
+        $result = $statement->execute(array($idLink=>$link->getId()))?
+                        Result::getInstance(200,$statement->fetchAll()):
+                        Result::getInstance(500,["error"=>self::ERROR_MESSAGE]);
+
+        $pdo=null;
+        $statement=null;
+        return $result;
+    }    
 
     public function nameLike(IOnthos $onthos):Result
     {
@@ -494,7 +515,6 @@ class Crud extends EntityCrud implements ICrud
     public function getOnthosByUid(IOnthos &$onthos):Result
     {
         $entity = $onthos->getEntityName();
-        $description= $onthos->getName();
         $query = "Select id,name From {$entity} Where uid=:uid And active=1";
         
         $pdo = $this->provider->getPdo();
@@ -558,7 +578,6 @@ class Crud extends EntityCrud implements ICrud
     public function getObjectByUid(IObject &$object):Result
     {
         $entity = $object->getEntityName();
-        $description= $object->getDescription();
         $query = "Select id,description From {$entity} Where uid=:uid And active=1";
         
         $pdo = $this->provider->getPdo();

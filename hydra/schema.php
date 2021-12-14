@@ -96,13 +96,16 @@ class TextSchema extends Schema
 
 class ForeignKeySchema extends Schema
 {
-    public function __construct(bool $nullable=true)
+    private $references;
+    
+    public function __construct(bool $nullable=true,string $references=null)
     {
         parent::__construct("int unsigned",$nullable);
+        if (isset($references))$this->references = $references;
     }
 
     public function getTableName(){
-        return trim($this->name,"id");
+        return isset($this->references)?$this->references:trim($this->name,"id");
     }
 
     public function constraintName(){

@@ -27,7 +27,7 @@ function main(){
 
     chmod($providerFile,4);
     chmod($configFile,4);
-    
+
     $provider = Provider::getInstance($providerFile);
     $config = Config::getInstance($configFile,$request->getEntity());
     $auth = $request->getAuth();

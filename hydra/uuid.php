@@ -9,14 +9,14 @@ class Uuid
         $this->data=$data;
     }
 
-    public static function raiseFromNew(){
+    public static function raiseFromNew():Uuid{
         $data = random_bytes(16);
         $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version to 0100
         $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
         return new Uuid($data);
     }
 
-    public static function raiseFromString($string){
+    public static function raiseFromString($string):Uuid{
         return new Uuid(hex2bin(str_replace("-","",$string)));
     }
 

@@ -24,9 +24,9 @@ abstract class ViewSet{
         if ($this->valid->hasKey("feature")){
             $payload = $this->valid->getInfo("feature");
             return (
-                property_exists($payload,$feature)?
+                array_key_exists($feature,$payload)?
                     (
-                        array_key_exists($role,$payload->$feature)?
+                        in_array($role,$payload[$feature])?
                             new Result(100,null):
                             new Result(403,["error"=>"Role forbidden for provided token"])
                     ):
@@ -37,7 +37,9 @@ abstract class ViewSet{
 
     protected function getPayload($field=null)
     {
-        return $this->valid->getInfo($field);
+        return $this->valid->hasKey($field)?
+                    $this->valid->getInfo($field):
+                    false;
     }
 
     public function authorize():Result

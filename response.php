@@ -6,7 +6,6 @@
     class Response implements JsonSerializable
     {
         private $body;
-        private $status;
 
         private function __construct(Result $result){
             http_response_code($result->getStatus());

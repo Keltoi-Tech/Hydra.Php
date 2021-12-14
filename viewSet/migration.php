@@ -1,42 +1,45 @@
 <?php 
 namespace viewSet;
-include_once("repository/version.php");
-include_once("repository/migration.php");
+require_once("repository/version.php");
+require_once("service/tokenMigration.php");
+require_once("domain/migration.php");
+
 use hydra\{
     IConfig,
     IAuth,
     ViewSet,
     Result
 };
-use repository\{
-    VersionRepository,
-    MigrationRepository
-};
 use persistence\{
     IProvider,
-    Definition
+    Definition,
+    Migration
 };
-use token\HS256Jwt;
+use repository\VersionRepository;
 use model\Version;
+use token\HS256Jwt;
+use domain\MigrationDomain;
+use service\TokenMigration;
 
 class MigrationViewSet extends ViewSet
 {
     private $versionRepository;
-    private $migrationRepository;
     private $appName;
     private $definitions;
 
     protected function __construct(
         Result              $valid,
-        VersionRepository   $versionRepository,
-        MigrationRepository $migrationRepository,
-        string $appName
+        string $appName,        
+        TokenMigration $tokenMigration,
+        Migration $migration,       
+        VersionRepository   $versionRepository
     )
     {
         parent::__construct($valid);
         $this->versionRepository = $versionRepository;
-        $this->migrationRepository = $migrationRepository;
         $this->appName = $appName;
+        $this->tokenMigration = $tokenMigration;
+        $this->migrationDomain = new MigrationDomain($migration);
 
         $this->definitions=[
             Definition::getInstance(new Version())
@@ -46,7 +49,8 @@ class MigrationViewSet extends ViewSet
     function __destruct(){
         parent::__destruct();
         $this->versionRepository= null;
-        $this->migrationRepository = null;
+        $this->tokenMigration = null;
+        $this->migrationDomain = null;
     }
 
     public function postAuthTerraform($entry):Result{
@@ -54,7 +58,7 @@ class MigrationViewSet extends ViewSet
             isset($entry["app"])?
             (
                 isset($entry["password"])?
-                    $this->migrationRepository->authTerraform($entry["app"],$entry["password"]):
+                    $this->tokenMigration->raiseTerraformToken($entry["app"],$entry["password"]):
                     new Result(400,["error"=>"No password provided"])
             ):
             new Result(400,["error"=>"No app provided"])
@@ -66,7 +70,7 @@ class MigrationViewSet extends ViewSet
             isset($entry["app"])?
             (
                 isset($entry["password"])?
-                    $this->migrationRepository->authMigration($entry["app"],$entry["password"]):
+                    $this->tokenMigration->raiseMigrationToken($entry["app"],$entry["password"]):
                     new Result(400,["error"=>"No password provided"])
             ):
             new Result(400,["error"=>"No app provided"])
@@ -77,12 +81,13 @@ class MigrationViewSet extends ViewSet
         $issuer = $this->getPayload("iss");
         $op = $this->getPayload("sub");
 
+        if ($issuer===false || $op===false)
+            return new Result(401,["error"=>"Unauthorized"]);
+
         if ($issuer==$this->appName && $op=="terraform"){
-            $result= $this->migrationRepository->terraform($this->definitions);
+            $result= $this->migrationDomain->terraform($this->definitions);
             if ($result->assert(201)){
-                $version = new Version();
-                $version->newUid();
-                $this->versionRepository->insert($version);
+                $this->versionRepository->begin();
             }
             return $result;
         }else return new Result(403,["error"=>"Operation not allowed"]);        
@@ -93,17 +98,14 @@ class MigrationViewSet extends ViewSet
         $op = $this->getPayload("sub");
 
         if ($issuer==$this->appName && $op=="migration"){
-            $version = new Version();
-            $version->setId(1);
-            $versionOrFail = $this->versionRepository->get($version);
-            if ($versionOrFail->assert(100)){
-                $result = $this->migrationRepository->migration($this->definitions);
+            $version = $this->versionRepository->exists(1);
+            if ($version==null){
+                $result = $this->migrationDomain->migration($this->definitions);
                 if ($result->assert(201)){
-                    $version->add();
-                    $this->versionRepository->update($version);
+                    $this->versionRepository->increment($version);
                 }
                 return $result;
-            }else return $versionOrFail;
+            }else return new Result(404,["error"=>"Version not found"]);
         }return new Result(403,["error"=>"Operation not allowed"]);        
     }
 
@@ -116,9 +118,10 @@ class MigrationViewSet extends ViewSet
             isset($auth)?
                 HS256Jwt::validate($auth->getAuth(),$config->getHash()): 
                 new Result(100,["request"=>"token"]),
-            VersionRepository::getInstance($provider),
-            MigrationRepository::getInstance($provider,$config),
-            $config->getAppName()
+            $config->getAppName(),
+            new TokenMigration($config),
+            new Migration($provider),
+            VersionRepository::getInstance($provider)
         );
     }
 }

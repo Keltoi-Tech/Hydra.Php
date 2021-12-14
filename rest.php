@@ -63,19 +63,24 @@ class Rest
         if (isset($param))
         {
             $method = $this->setCall("patch",$param[0]);
+
             if (method_exists($this->viewSet,$method)){
                 $guid = isset($param[1])?$param[1]:null;
-                if ($hasData)
-                    return isset($guid)?
+                return (
+                    $hasData?
+                        (
+                            isset($guid)?
                                 $this->viewSet->$method($guid,$data):
-                                $this->viewSet->$method($data);
-                else        
-                    return isset($guid)?
+                                $this->viewSet->$method($data)
+                        ):
+                        (
+                            isset($guid)?
                                 $this->viewSet->$method($guid):
-                                $this->viewSet->$method();
-            }else new Result(404,["error"=>"Route not found"]); 
-        }
-        else return new Result(404,["error"=>"Route not found"]); 
+                                $this->viewSet->$method()
+                        )
+                    );
+            }else return new Result(404,["error"=>"Route not found"]); 
+        }else return new Result(404,["error"=>"Route not found"]); 
     }
 
     function delete(){

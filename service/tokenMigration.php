@@ -1,26 +1,21 @@
 <?php
-namespace repository;
-use persistence\{IProvider,IDefinition,Crud,Migration};
-use hydra\{Result,IConfig};
+namespace service;
+include_once("token.php");
 use token\{HS256Jwt,ObjectToken};
+use hydra\{Result,IConfig};
 use DateInterval;
 
-class MigrationRepository extends Crud
+class TokenMigration extends Token
 {
-    private $migration;
-    private $config;
-    private function __construct(IProvider $provider,IConfig $config){
-        parent::__construct($provider);
-        $this->migration = new Migration($provider,$config);
-        $this->config = $config;
+    public function __construct(IConfig $config)
+    {
+        parent::__construct($config);
     }
 
-    public static function getInstance(IProvider $provider,IConfig $config){
-        return new MigrationRepository($provider,$config);
-    }
-
-    public function authTerraform(string $app, string $password):Result{
-        if ($this->config->validateAppHash($app,$password)){
+    public function raiseTerraformToken(string $app, string $password):Result
+    {
+        if ($this->config->validateAppHash($app,$password))
+        {
             $secondsToExpire = $this->config->getMigration()->expire;
             $secret = $this->config->getHash();
             $expire = date_create();
@@ -44,9 +39,10 @@ class MigrationRepository extends Crud
             return new Result(200,["token"=>$token]);
 
         }else return new Result(401,["error"=>"Unauthenticated"]);           
-    }
+    }    
 
-    public function authMigration(string $app, string $password):Result{
+    public function raiseMigrationToken(string $app, string $password):Result
+    {
         if ($this->config->validateAppHash($app,$password)){
             $secondsToExpire = $this->config->getMigration()->expire;
             $secret = $this->config->getHash();
@@ -72,30 +68,5 @@ class MigrationRepository extends Crud
 
         }else return new Result(401,["error"=>"Unauthenticated"]);           
     }    
-
-    public function terraform(array $definitions):Result{
-        $messages = [];
-        foreach ($definitions as $definition)
-        {
-            $result = $this->migration->create($definition);
-            array_push(
-                $messages,
-                $result->getInfo($result->assert(100)?"ok":"error")
-            );
-        }
-        return new Result(201,["messages"=>$messages]);
-    }
-
-    public function migration(array $definitions):Result{
-        $messages=[];
-        foreach($definitions as $definition){
-            $result = $this->migration->schemaAnalysis($definition);
-            array_push(
-                $messages,
-                $result->getInfo($result->assert(100)?"ok":"error")
-            );
-        }
-        return new Result(201,["messages"=>$messages]);
-    }
 }
 ?>

@@ -224,16 +224,14 @@ class Crud extends EntityCrud
 
         $statement = $pdo->prepare($query);
         $statement->setFetchMode(PDO::FETCH_CLASS,"\\model\\".$name);
-        $statement->execute([
-            "uid"=>$entity->getUid(),
-            "active"=>$alive?1:0
-        ]);
+        $statement->execute(["active"=>$alive?1:0]);
+
         $o = $statement->fetchAll();
 
         $result = 
             (count($o)===0)? 
                 Result::getInstance(404,["error"=>self::NOT_FOUND]):
-                Result::getInstance(100,$o);
+                Result::getInstance(200,$o);
 
         $statement->closeCursor();
         $statement=null;

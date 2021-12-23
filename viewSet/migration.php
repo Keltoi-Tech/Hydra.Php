@@ -106,7 +106,7 @@ class MigrationViewSet extends ViewSet
                 }
                 return $result;
             }else return new Result(404,["error"=>"Version not found"]);
-        }return new Result(403,["error"=>"Operation not allowed"]);        
+        }return new Result(403,["error"=>"Operation not allowed"]);
     }
 
     public static function getInstance(

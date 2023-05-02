@@ -6,6 +6,7 @@ use hydra\{
     Entity,
     Schema
 };
+
 class Version extends Entity implements IEntity,ISerializable
 {
     private $number;
@@ -40,4 +41,5 @@ class Version extends Entity implements IEntity,ISerializable
         ];
     }
 }
+
 ?>

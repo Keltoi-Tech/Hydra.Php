@@ -42,6 +42,5 @@ function main(){
     $response = null;
     $viewSet = null;
     $rest = null;
-    $result=null;
 }
 ?>

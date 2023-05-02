@@ -62,6 +62,7 @@ class TokenMigration extends Token
                     "sub"=>"migration"
                 ])
             );
+            
             $jwt=null;
 
             return new Result(200,["token"=>$token]);

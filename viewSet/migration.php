@@ -26,6 +26,8 @@ class MigrationViewSet extends ViewSet
     private $versionRepository;
     private $appName;
     private $definitions;
+    private $tokenMigration;
+    private $migrationDomain;
 
     protected function __construct(
         Result              $valid,
